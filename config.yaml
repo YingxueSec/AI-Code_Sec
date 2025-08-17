@@ -1,0 +1,115 @@
+# AI Code Audit System Configuration
+# This file contains the main configuration for the AI Code Audit System
+
+# Database Configuration
+database:
+  host: "localhost"
+  port: 3306
+  username: "root"
+  password: "jackhou."
+  database: "ai_code_audit_system"
+  charset: "utf8mb4"
+  pool_size: 10
+  max_overflow: 20
+
+# LLM (Large Language Model) Configuration
+llm:
+  default_model: "qwen-coder-30b"
+
+  # Qwen Provider (SiliconFlow)
+  qwen:
+    api_key: "sk-bldkmthquuuypfythtasqvdhwtclplekygnbylvboctetkeh"
+    base_url: "https://api.siliconflow.cn/v1"
+    model_name: "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    enabled: true
+    priority: 1
+    max_requests_per_minute: 60
+    cost_weight: 1.0
+    performance_weight: 1.0
+    timeout: 30
+
+  # Kimi Provider (SiliconFlow)
+  kimi:
+    api_key: "sk-kpepqjjtmxpcdhqcvrdekuroxvmpmphkfouhzbcbudbpzzzt"
+    base_url: "https://api.siliconflow.cn/v1"
+    model_name: "moonshotai/Kimi-K2-Instruct"
+    enabled: true
+    priority: 2
+    max_requests_per_minute: 30
+    cost_weight: 1.2
+    performance_weight: 1.1
+    timeout: 60
+
+# Audit Configuration
+audit:
+  max_concurrent_sessions: 3
+  cache_ttl: 86400  # 24 hours in seconds
+  max_file_size: 100000  # 100KB
+  max_files_per_audit: 50
+  
+  supported_languages:
+    - "python"
+    - "javascript"
+    - "typescript"
+    - "java"
+    - "go"
+    - "rust"
+    - "cpp"
+    - "c"
+    - "csharp"
+    - "php"
+    - "ruby"
+    - "kotlin"
+    - "swift"
+    - "scala"
+  
+  output_formats:
+    - "json"
+    - "yaml"
+    - "table"
+    - "markdown"
+    - "html"
+
+# Security Rules Configuration
+security_rules:
+  sql_injection: true
+  xss: true
+  csrf: true
+  authentication: true
+  authorization: true
+  data_validation: true
+  sensitive_data_exposure: true
+  insecure_crypto: true
+  code_injection: true
+  path_traversal: true
+
+# Application Settings
+cache_dir: "./cache"
+log_level: "INFO"
+debug: false
+
+# Advanced Settings
+advanced:
+  # Enable experimental features
+  experimental_features: false
+  
+  # Performance tuning
+  performance:
+    max_parallel_requests: 5
+    request_timeout: 120
+    retry_attempts: 3
+    retry_delay: 2
+  
+  # Analysis settings
+  analysis:
+    deep_analysis: true
+    include_dependencies: true
+    analyze_test_files: false
+    max_context_length: 32768
+  
+  # Report settings
+  reports:
+    include_code_snippets: true
+    max_snippet_length: 500
+    include_fix_suggestions: true
+    severity_threshold: "medium"

@@ -1,0 +1,401 @@
+"""
+Configuration management for AI Code Audit System.
+
+This module provides centralized configuration management with support for
+environment variables, configuration files, and default settings.
+"""
+
+import os
+import yaml
+from pathlib import Path
+from typing import Dict, Any, Optional, List
+from dataclasses import dataclass, field
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DatabaseConfig:
+    """Database configuration."""
+    host: str = "localhost"
+    port: int = 3306
+    username: str = "root"
+    password: str = "jackhou."
+    database: str = "ai_code_audit_system"
+    charset: str = "utf8mb4"
+    pool_size: int = 10
+    max_overflow: int = 20
+
+
+@dataclass
+class LLMProviderConfig:
+    """LLM provider configuration."""
+    api_key: str
+    base_url: Optional[str] = None
+    enabled: bool = True
+    priority: int = 1
+    max_requests_per_minute: int = 60
+    cost_weight: float = 1.0
+    performance_weight: float = 1.0
+    timeout: int = 30
+
+
+@dataclass
+class LLMConfig:
+    """LLM configuration."""
+    default_model: str = "qwen-coder-30b"
+    qwen: Optional[LLMProviderConfig] = None
+    kimi: Optional[LLMProviderConfig] = None
+
+
+@dataclass
+class AuditConfig:
+    """Audit configuration."""
+    max_concurrent_sessions: int = 3
+    cache_ttl: int = 86400
+    supported_languages: List[str] = field(default_factory=lambda: [
+        "python", "javascript", "typescript", "java", "go", "rust", "cpp", "c", "csharp", "php", "ruby"
+    ])
+    output_formats: List[str] = field(default_factory=lambda: ["json", "yaml", "table", "markdown"])
+    max_file_size: int = 100000  # 100KB
+    max_files_per_audit: int = 50
+
+
+@dataclass
+class SecurityRulesConfig:
+    """Security rules configuration."""
+    sql_injection: bool = True
+    xss: bool = True
+    csrf: bool = True
+    authentication: bool = True
+    authorization: bool = True
+    data_validation: bool = True
+    sensitive_data_exposure: bool = True
+    insecure_crypto: bool = True
+    code_injection: bool = True
+    path_traversal: bool = True
+
+
+@dataclass
+class AppConfig:
+    """Main application configuration."""
+    database: DatabaseConfig = field(default_factory=DatabaseConfig)
+    llm: LLMConfig = field(default_factory=LLMConfig)
+    audit: AuditConfig = field(default_factory=AuditConfig)
+    security_rules: SecurityRulesConfig = field(default_factory=SecurityRulesConfig)
+    cache_dir: str = "./cache"
+    log_level: str = "INFO"
+    debug: bool = False
+
+
+class ConfigManager:
+    """Configuration manager with multiple sources support."""
+    
+    def __init__(self, config_path: Optional[str] = None):
+        """Initialize configuration manager."""
+        self.config_path = config_path or self._find_config_file()
+        self._config: Optional[AppConfig] = None
+    
+    def _find_config_file(self) -> Optional[str]:
+        """Find configuration file in standard locations."""
+        # Priority order:
+        # 1. Environment variable
+        # 2. Current directory
+        # 3. User home directory
+        # 4. System config directory
+        
+        if 'AI_AUDIT_CONFIG' in os.environ:
+            config_path = os.environ['AI_AUDIT_CONFIG']
+            if Path(config_path).exists():
+                return config_path
+        
+        # Check current directory
+        current_config = Path('./ai-audit.yaml')
+        if current_config.exists():
+            return str(current_config)
+        
+        current_config = Path('./config.yaml')
+        if current_config.exists():
+            return str(current_config)
+        
+        # Check user home directory
+        home_config = Path.home() / '.ai-code-audit' / 'config.yaml'
+        if home_config.exists():
+            return str(home_config)
+        
+        # Check project directory
+        project_config = Path(__file__).parent.parent.parent / 'config.yaml'
+        if project_config.exists():
+            return str(project_config)
+        
+        return None
+    
+    def load_config(self) -> AppConfig:
+        """Load configuration from all sources."""
+        if self._config is not None:
+            return self._config
+        
+        # Start with default configuration
+        config = AppConfig()
+        
+        # Load from file if exists
+        if self.config_path and Path(self.config_path).exists():
+            try:
+                file_config = self._load_from_file(self.config_path)
+                config = self._merge_config(config, file_config)
+                logger.info(f"Loaded configuration from: {self.config_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load config file {self.config_path}: {e}")
+        
+        # Override with environment variables
+        config = self._load_from_env(config)
+        
+        # Validate configuration
+        self._validate_config(config)
+        
+        self._config = config
+        return config
+    
+    def _load_from_file(self, config_path: str) -> Dict[str, Any]:
+        """Load configuration from YAML file."""
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f) or {}
+    
+    def _load_from_env(self, config: AppConfig) -> AppConfig:
+        """Load configuration from environment variables."""
+        # Database configuration
+        if os.getenv('DB_HOST'):
+            config.database.host = os.getenv('DB_HOST')
+        if os.getenv('DB_PORT'):
+            config.database.port = int(os.getenv('DB_PORT'))
+        if os.getenv('DB_USERNAME'):
+            config.database.username = os.getenv('DB_USERNAME')
+        if os.getenv('DB_PASSWORD'):
+            config.database.password = os.getenv('DB_PASSWORD')
+        if os.getenv('DB_DATABASE'):
+            config.database.database = os.getenv('DB_DATABASE')
+        
+        # LLM configuration
+        qwen_key = os.getenv('QWEN_API_KEY')
+        if qwen_key:
+            config.llm.qwen = LLMProviderConfig(
+                api_key=qwen_key,
+                base_url=os.getenv('QWEN_BASE_URL', 'https://api.siliconflow.cn/v1'),
+                enabled=True,
+                priority=1,
+                cost_weight=1.0,
+                performance_weight=1.0
+            )
+        
+        kimi_key = os.getenv('KIMI_API_KEY')
+        if kimi_key:
+            config.llm.kimi = LLMProviderConfig(
+                api_key=kimi_key,
+                base_url=os.getenv('KIMI_BASE_URL', 'https://api.siliconflow.cn/v1'),
+                enabled=True,
+                priority=2,
+                cost_weight=1.2,
+                performance_weight=1.1
+            )
+        
+        # Other configuration
+        if os.getenv('LOG_LEVEL'):
+            config.log_level = os.getenv('LOG_LEVEL')
+        if os.getenv('DEBUG'):
+            config.debug = os.getenv('DEBUG').lower() in ('true', '1', 'yes')
+        if os.getenv('CACHE_DIR'):
+            config.cache_dir = os.getenv('CACHE_DIR')
+        
+        return config
+    
+    def _merge_config(self, base_config: AppConfig, file_config: Dict[str, Any]) -> AppConfig:
+        """Merge file configuration with base configuration."""
+        # Database configuration
+        if 'database' in file_config:
+            db_config = file_config['database']
+            if 'host' in db_config:
+                base_config.database.host = db_config['host']
+            if 'port' in db_config:
+                base_config.database.port = db_config['port']
+            if 'username' in db_config:
+                base_config.database.username = db_config['username']
+            if 'password' in db_config:
+                base_config.database.password = db_config['password']
+            if 'database' in db_config:
+                base_config.database.database = db_config['database']
+        
+        # LLM configuration
+        if 'llm' in file_config:
+            llm_config = file_config['llm']
+            
+            if 'default_model' in llm_config:
+                base_config.llm.default_model = llm_config['default_model']
+            
+            if 'qwen' in llm_config:
+                qwen_config = llm_config['qwen']
+                base_config.llm.qwen = LLMProviderConfig(
+                    api_key=qwen_config.get('api_key', ''),
+                    base_url=qwen_config.get('base_url'),
+                    enabled=qwen_config.get('enabled', True),
+                    priority=qwen_config.get('priority', 1),
+                    cost_weight=qwen_config.get('cost_weight', 1.0),
+                    performance_weight=qwen_config.get('performance_weight', 1.0)
+                )
+            
+            if 'kimi' in llm_config:
+                kimi_config = llm_config['kimi']
+                base_config.llm.kimi = LLMProviderConfig(
+                    api_key=kimi_config.get('api_key', ''),
+                    base_url=kimi_config.get('base_url'),
+                    enabled=kimi_config.get('enabled', True),
+                    priority=kimi_config.get('priority', 2),
+                    cost_weight=kimi_config.get('cost_weight', 1.2),
+                    performance_weight=kimi_config.get('performance_weight', 1.1)
+                )
+        
+        # Audit configuration
+        if 'audit' in file_config:
+            audit_config = file_config['audit']
+            if 'max_concurrent_sessions' in audit_config:
+                base_config.audit.max_concurrent_sessions = audit_config['max_concurrent_sessions']
+            if 'supported_languages' in audit_config:
+                base_config.audit.supported_languages = audit_config['supported_languages']
+            if 'output_formats' in audit_config:
+                base_config.audit.output_formats = audit_config['output_formats']
+        
+        # Security rules
+        if 'security_rules' in file_config:
+            rules_config = file_config['security_rules']
+            for rule, enabled in rules_config.items():
+                if hasattr(base_config.security_rules, rule):
+                    setattr(base_config.security_rules, rule, enabled)
+        
+        # Other settings
+        if 'cache_dir' in file_config:
+            base_config.cache_dir = file_config['cache_dir']
+        if 'log_level' in file_config:
+            base_config.log_level = file_config['log_level']
+        if 'debug' in file_config:
+            base_config.debug = file_config['debug']
+        
+        return base_config
+    
+    def _validate_config(self, config: AppConfig) -> None:
+        """Validate configuration."""
+        # Validate database configuration
+        if not config.database.host:
+            raise ValueError("Database host is required")
+        if not config.database.username:
+            raise ValueError("Database username is required")
+        if not config.database.database:
+            raise ValueError("Database name is required")
+        
+        # Validate LLM configuration
+        if not config.llm.qwen and not config.llm.kimi:
+            logger.warning("No LLM providers configured - some features will not work")
+        
+        # Validate directories
+        cache_dir = Path(config.cache_dir)
+        cache_dir.mkdir(parents=True, exist_ok=True)
+    
+    def save_config(self, config_path: Optional[str] = None) -> None:
+        """Save current configuration to file."""
+        if not self._config:
+            raise ValueError("No configuration loaded")
+        
+        save_path = config_path or self.config_path or './ai-audit.yaml'
+        
+        config_dict = self._config_to_dict(self._config)
+        
+        with open(save_path, 'w', encoding='utf-8') as f:
+            yaml.dump(config_dict, f, default_flow_style=False, indent=2)
+        
+        logger.info(f"Configuration saved to: {save_path}")
+    
+    def _config_to_dict(self, config: AppConfig) -> Dict[str, Any]:
+        """Convert configuration to dictionary."""
+        config_dict = {
+            'database': {
+                'host': config.database.host,
+                'port': config.database.port,
+                'username': config.database.username,
+                'password': config.database.password,
+                'database': config.database.database,
+                'charset': config.database.charset,
+                'pool_size': config.database.pool_size,
+                'max_overflow': config.database.max_overflow,
+            },
+            'llm': {
+                'default_model': config.llm.default_model,
+            },
+            'audit': {
+                'max_concurrent_sessions': config.audit.max_concurrent_sessions,
+                'cache_ttl': config.audit.cache_ttl,
+                'supported_languages': config.audit.supported_languages,
+                'output_formats': config.audit.output_formats,
+                'max_file_size': config.audit.max_file_size,
+                'max_files_per_audit': config.audit.max_files_per_audit,
+            },
+            'security_rules': {
+                'sql_injection': config.security_rules.sql_injection,
+                'xss': config.security_rules.xss,
+                'csrf': config.security_rules.csrf,
+                'authentication': config.security_rules.authentication,
+                'authorization': config.security_rules.authorization,
+                'data_validation': config.security_rules.data_validation,
+                'sensitive_data_exposure': config.security_rules.sensitive_data_exposure,
+                'insecure_crypto': config.security_rules.insecure_crypto,
+                'code_injection': config.security_rules.code_injection,
+                'path_traversal': config.security_rules.path_traversal,
+            },
+            'cache_dir': config.cache_dir,
+            'log_level': config.log_level,
+            'debug': config.debug,
+        }
+        
+        if config.llm.qwen:
+            config_dict['llm']['qwen'] = {
+                'api_key': config.llm.qwen.api_key,
+                'base_url': config.llm.qwen.base_url,
+                'enabled': config.llm.qwen.enabled,
+                'priority': config.llm.qwen.priority,
+                'cost_weight': config.llm.qwen.cost_weight,
+                'performance_weight': config.llm.qwen.performance_weight,
+            }
+        
+        if config.llm.kimi:
+            config_dict['llm']['kimi'] = {
+                'api_key': config.llm.kimi.api_key,
+                'base_url': config.llm.kimi.base_url,
+                'enabled': config.llm.kimi.enabled,
+                'priority': config.llm.kimi.priority,
+                'cost_weight': config.llm.kimi.cost_weight,
+                'performance_weight': config.llm.kimi.performance_weight,
+            }
+        
+        return config_dict
+
+
+# Global configuration manager instance
+_config_manager: Optional[ConfigManager] = None
+
+
+def get_config_manager() -> ConfigManager:
+    """Get global configuration manager instance."""
+    global _config_manager
+    if _config_manager is None:
+        _config_manager = ConfigManager()
+    return _config_manager
+
+
+def get_config() -> AppConfig:
+    """Get application configuration."""
+    return get_config_manager().load_config()
+
+
+def reload_config() -> AppConfig:
+    """Reload configuration from sources."""
+    global _config_manager
+    _config_manager = None
+    return get_config()
