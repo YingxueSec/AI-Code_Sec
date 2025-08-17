@@ -18,12 +18,13 @@ import json
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from ai_code_audit.llm.base import LLMProvider, LLMResponse, LLMError
+from ai_code_audit.llm.base import BaseLLMProvider, LLMResponse, LLMRequest, LLMMessage, MessageRole
 from ai_code_audit.llm.qwen_provider import QwenProvider
 from ai_code_audit.llm.kimi_provider import KimiProvider
-from ai_code_audit.llm.manager import LLMManager, LoadBalancingStrategy
+from ai_code_audit.llm.manager import LLMManager
 from ai_code_audit.llm.prompts import PromptTemplate, PromptManager
-from ai_code_audit.core.config import LLMConfig, QwenConfig, KimiConfig
+from ai_code_audit.core.exceptions import LLMError
+from ai_code_audit.core.config import LLMConfig
 
 
 class TestLLMProviders:
@@ -32,10 +33,10 @@ class TestLLMProviders:
     @pytest.fixture
     def qwen_config(self):
         """Fixture providing Qwen configuration."""
-        return QwenConfig(
+        from ai_code_audit.core.config import LLMProviderConfig
+        return LLMProviderConfig(
             api_key="test_qwen_key",
             base_url="https://api.siliconflow.cn/v1",
-            model="Qwen/Qwen2.5-Coder-32B-Instruct",
             enabled=True,
             priority=1,
             cost_weight=0.8
@@ -44,10 +45,10 @@ class TestLLMProviders:
     @pytest.fixture
     def kimi_config(self):
         """Fixture providing Kimi configuration."""
-        return KimiConfig(
+        from ai_code_audit.core.config import LLMProviderConfig
+        return LLMProviderConfig(
             api_key="test_kimi_key",
             base_url="https://api.moonshot.cn/v1",
-            model="moonshot-v1-32k",
             enabled=True,
             priority=2,
             cost_weight=1.0
@@ -56,28 +57,35 @@ class TestLLMProviders:
     @pytest.mark.asyncio
     async def test_qwen_provider_initialization(self, qwen_config):
         """Test Qwen provider initialization."""
-        provider = QwenProvider(qwen_config)
-        
-        assert provider.config == qwen_config
-        assert provider.name == "qwen"
-        assert provider.model == qwen_config.model
-        assert provider.is_available()
+        provider = QwenProvider(
+            api_key=qwen_config.api_key,
+            base_url=qwen_config.base_url
+        )
+
+        assert provider.provider_name == "qwen"
+        assert provider.api_key == qwen_config.api_key
+        assert provider.base_url == qwen_config.base_url
     
     @pytest.mark.asyncio
     async def test_kimi_provider_initialization(self, kimi_config):
         """Test Kimi provider initialization."""
-        provider = KimiProvider(kimi_config)
-        
-        assert provider.config == kimi_config
-        assert provider.name == "kimi"
-        assert provider.model == kimi_config.model
-        assert provider.is_available()
+        provider = KimiProvider(
+            api_key=kimi_config.api_key,
+            base_url=kimi_config.base_url
+        )
+
+        assert provider.provider_name == "kimi"
+        assert provider.api_key == kimi_config.api_key
+        assert provider.base_url == kimi_config.base_url
     
     @pytest.mark.asyncio
-    async def test_qwen_provider_analyze_code(self, qwen_config):
-        """Test Qwen provider code analysis."""
-        provider = QwenProvider(qwen_config)
-        
+    async def test_qwen_provider_chat_completion(self, qwen_config):
+        """Test Qwen provider chat completion."""
+        provider = QwenProvider(
+            api_key=qwen_config.api_key,
+            base_url=qwen_config.base_url
+        )
+
         # Mock the HTTP client
         with patch('aiohttp.ClientSession.post') as mock_post:
             mock_response = Mock()
@@ -85,19 +93,10 @@ class TestLLMProviders:
             mock_response.json = AsyncMock(return_value={
                 "choices": [{
                     "message": {
-                        "content": json.dumps({
-                            "issues_found": 2,
-                            "security_score": 0.7,
-                            "issues": [
-                                {
-                                    "type": "SQL_INJECTION",
-                                    "severity": "HIGH",
-                                    "line": 10,
-                                    "description": "SQL injection vulnerability"
-                                }
-                            ]
-                        })
-                    }
+                        "content": "This code looks secure. No issues found.",
+                        "role": "assistant"
+                    },
+                    "finish_reason": "stop"
                 }],
                 "usage": {
                     "prompt_tokens": 100,
@@ -106,23 +105,34 @@ class TestLLMProviders:
                 }
             })
             mock_post.return_value.__aenter__.return_value = mock_response
-            
-            result = await provider.analyze_code(
-                code="SELECT * FROM users WHERE id = ?",
-                file_path="test.py",
-                context={}
+
+            # Create a test request
+            from ai_code_audit.llm.base import LLMModelType
+            request = LLMRequest(
+                messages=[
+                    LLMMessage(MessageRole.SYSTEM, "You are a code security analyst."),
+                    LLMMessage(MessageRole.USER, "Analyze this code: SELECT * FROM users WHERE id = ?")
+                ],
+                model=LLMModelType.QWEN_CODER_30B,
+                temperature=0.1
             )
-            
+
+            result = await provider.chat_completion(request)
+
             assert isinstance(result, LLMResponse)
             assert result.provider_name == "qwen"
-            assert result.model_used == qwen_config.model
-            assert result.success
-            assert result.token_usage["total_tokens"] == 150
+            assert result.model_used == LLMModelType.QWEN_CODER_30B
+            assert result.content == "This code looks secure. No issues found."
+            assert result.usage.total_tokens == 150
+            assert result.finish_reason == "stop"
     
     @pytest.mark.asyncio
-    async def test_kimi_provider_analyze_code(self, kimi_config):
-        """Test Kimi provider code analysis."""
-        provider = KimiProvider(kimi_config)
+    async def test_kimi_provider_chat_completion(self, kimi_config):
+        """Test Kimi provider chat completion."""
+        provider = KimiProvider(
+            api_key=kimi_config.api_key,
+            base_url=kimi_config.base_url
+        )
         
         # Mock the HTTP client
         with patch('aiohttp.ClientSession.post') as mock_post:
