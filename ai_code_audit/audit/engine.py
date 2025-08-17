@@ -22,6 +22,10 @@ from ..analysis.cache_manager import CacheManager, CacheType
 from ..analysis.coverage_tracker import CoverageTracker
 from ..analysis.task_matrix import TaskMatrix, AnalysisTask, TaskType
 from ..analysis.coverage_reporter import CoverageReporter
+from ..validation.hallucination_detector import HallucinationDetector
+from ..validation.consistency_checker import ConsistencyChecker
+from ..validation.duplicate_detector import DuplicateDetector
+from ..validation.failure_handler import FailureHandler
 from ..llm.manager import LLMManager
 from ..llm.base import LLMModelType
 from ..llm.prompts import PromptManager
@@ -59,6 +63,10 @@ class AuditEngine:
         self.coverage_tracker: Optional[CoverageTracker] = None
         self.task_matrix: Optional[TaskMatrix] = None
         self.coverage_reporter: Optional[CoverageReporter] = None
+        self.hallucination_detector: Optional[HallucinationDetector] = None
+        self.consistency_checker: Optional[ConsistencyChecker] = None
+        self.duplicate_detector: Optional[DuplicateDetector] = None
+        self.failure_handler: FailureHandler = FailureHandler()
         self.advanced_templates = AdvancedTemplateManager()
 
         # Initialize core components
@@ -158,6 +166,13 @@ class AuditEngine:
             self.coverage_tracker = CoverageTracker(project_info)
             self.task_matrix = TaskMatrix()
             self.coverage_reporter = CoverageReporter(self.coverage_tracker)
+
+            # Initialize validation components
+            project_files = {file_info.path: self._read_file_content(file_info.absolute_path)
+                           for file_info in project_info.files}
+            self.hallucination_detector = HallucinationDetector(project_files)
+            self.consistency_checker = ConsistencyChecker(project_files)
+            self.duplicate_detector = DuplicateDetector()
 
             # Create session configuration
             if session_config is None:
@@ -321,6 +336,15 @@ class AuditEngine:
             'coverage_percentage': stats.coverage_percentage,
             'success_rate': stats.success_rate,
         }
+
+    def _read_file_content(self, file_path: str) -> str:
+        """Read file content safely."""
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                return f.read()
+        except Exception as e:
+            logger.warning(f"Failed to read file {file_path}: {e}")
+            return ""
     
     async def _run_audit_workflow(
         self,
