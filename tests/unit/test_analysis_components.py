@@ -19,10 +19,10 @@ from unittest.mock import Mock, patch
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from ai_code_audit.analysis.semantic_analyzer import SemanticAnalyzer, Variable, DataFlow, VariableType, FlowType
+from ai_code_audit.analysis.semantic_analyzer import SemanticAnalyzer, Variable, DataFlow, VariableType, DataFlowType
 from ai_code_audit.analysis.taint_analyzer import TaintAnalyzer, TaintSource, TaintSink, TaintType
 from ai_code_audit.analysis.code_slicer import CodeSlicer, SlicePoint, SliceCriterion, CodeSlice
-from ai_code_audit.analysis.call_graph import CallGraphBuilder, FunctionNode, CallGraph
+from ai_code_audit.analysis.call_graph import CallGraphBuilder, FunctionNode, CallGraphResult
 from ai_code_audit.analysis.path_validator import PathValidator, VulnerabilityPath, ValidationResult
 from ai_code_audit.core.models import ProjectInfo, FileInfo
 
@@ -77,8 +77,8 @@ class UserManager:
             path=str(Path(temp_file).parent),
             language="python",
             files=[FileInfo(
-                path=temp_file,
-                name=Path(temp_file).name,
+                path=Path(temp_file).name,
+                absolute_path=temp_file,
                 size=1000,
                 language="python"
             )]
@@ -89,7 +89,7 @@ class UserManager:
         analyzer = SemanticAnalyzer(project_info)
         
         assert analyzer.project_info == project_info
-        assert len(analyzer.file_asts) == 0
+        assert len(analyzer.file_asts) == 1  # Should load the test file
         assert len(analyzer.analysis_results) == 0
     
     def test_analyze_file(self, project_info, temp_file):
