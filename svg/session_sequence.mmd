@@ -1,0 +1,55 @@
+sequenceDiagram
+    participant User as 用户
+    participant CLI as CLI命令
+    participant Engine as 审计引擎
+    participant SM as 会话管理器
+    participant SI as 隔离管理器
+    participant DB as 数据库
+    participant FS as 文件系统
+    
+    Note over User,FS: 会话创建阶段
+    User->>CLI: ai-audit scan /path/to/project
+    CLI->>Engine: 启动审计请求
+    Engine->>SM: 创建审计会话
+    SM->>DB: 保存会话记录
+    SM->>SI: 创建隔离上下文
+    SI->>FS: 创建临时目录
+    SI->>SI: 分配内存/缓存命名空间
+    SI-->>SM: 返回隔离上下文
+    SM-->>Engine: 返回会话ID
+    
+    Note over User,FS: 审计执行阶段
+    Engine->>SM: 开始审计 (session_id)
+    SM->>SI: 获取会话上下文
+    SI-->>SM: 返回隔离环境
+    SM->>SM: 在隔离环境中执行分析
+    SM->>DB: 更新进度状态
+    
+    Note over User,FS: 并发会话处理
+    User->>CLI: ai-audit scan /path/to/another/project
+    CLI->>Engine: 启动第二个审计请求
+    Engine->>SM: 创建新会话 (session_2)
+    SM->>SI: 创建独立隔离上下文
+    SI->>FS: 创建独立临时目录
+    
+    Note over User,FS: 会话暂停/恢复
+    User->>CLI: 暂停会话请求
+    CLI->>Engine: suspend_session(session_1)
+    Engine->>SM: 暂停会话
+    SM->>SI: 标记会话为暂停状态
+    SM->>DB: 保存会话状态
+    
+    User->>CLI: 恢复会话请求
+    CLI->>Engine: resume_session(session_1)
+    Engine->>SM: 恢复会话
+    SM->>SI: 恢复会话上下文
+    SM->>DB: 更新会话状态
+    
+    Note over User,FS: 会话清理阶段
+    SM->>SM: 审计完成
+    SM->>DB: 保存最终结果
+    SM->>SI: 销毁会话上下文
+    SI->>FS: 清理临时文件
+    SI->>SI: 释放内存/缓存命名空间
+    SM->>DB: 标记会话完成
+    SM-->>Engine: 返回审计结果
