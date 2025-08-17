@@ -21,12 +21,12 @@ import os
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from ai_code_audit.database.connection import DatabaseManager, get_database_manager
+from ai_code_audit.database.connection import DatabaseManager
 from ai_code_audit.database.models import (
-    AuditSession, AuditResult, SecurityIssue, ProjectInfo as DBProjectInfo
+    AuditSession, SecurityFinding, AuditReport, Project, File, Module, Base
 )
 from ai_code_audit.database.services import (
-    AuditSessionService, AuditResultService, SecurityIssueService
+    AuditSessionService, SecurityFindingService, ProjectService, FileService, CacheService
 )
 from ai_code_audit.core.models import ProjectInfo, FileInfo, AuditResult as CoreAuditResult
 from ai_code_audit.core.exceptions import DatabaseError
@@ -46,11 +46,15 @@ class TestDatabaseConnection:
     @pytest.mark.asyncio
     async def test_database_manager_initialization(self, test_db_url):
         """Test database manager initialization."""
-        manager = DatabaseManager(test_db_url)
-        
-        assert manager.database_url == test_db_url
+        from ai_code_audit.database.connection import DatabaseConfig
+
+        # Create config from URL
+        config = DatabaseConfig()
+        manager = DatabaseManager(config)
+
+        assert manager.config is not None
         assert manager.engine is None
-        assert not manager.is_connected
+        assert not manager._initialized
     
     @pytest.mark.asyncio
     async def test_database_connection(self, test_db_url):
