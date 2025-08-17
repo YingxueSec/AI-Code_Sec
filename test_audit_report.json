@@ -1,0 +1,46 @@
+{
+  "audit_summary": {
+    "session_id": "edf07f4f-904d-4272-9f32-5fba481e8ecf",
+    "project_name": "AI-CodeAudit-Aug",
+    "project_path": ".",
+    "generated_at": "2025-08-17T23:33:32.331039",
+    "total_findings": 0,
+    "risk_score": 0.0
+  },
+  "statistics": {
+    "severity_distribution": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "info": 0
+    },
+    "category_distribution": {
+      "injection": 0,
+      "authentication": 0,
+      "authorization": 0,
+      "sensitive_data": 0,
+      "cryptography": 0,
+      "input_validation": 0,
+      "output_encoding": 0,
+      "session_management": 0,
+      "configuration": 0,
+      "code_quality": 0,
+      "dependency": 0,
+      "other": 0
+    },
+    "file_distribution": {},
+    "total_vulnerabilities": 0,
+    "total_quality_issues": 0,
+    "risk_score": 0.0,
+    "average_confidence": 0.0
+  },
+  "vulnerabilities": [],
+  "quality_issues": [],
+  "metadata": {
+    "total_files_analyzed": 0,
+    "analysis_duration": 0.0,
+    "models_used": [],
+    "templates_used": []
+  }
+}

@@ -529,6 +529,172 @@ def version(ctx: click.Context) -> None:
 
 
 @main.command()
+@click.argument('project_path', default='.')
+@click.option('--template', default='security_audit',
+              type=click.Choice(['security_audit', 'code_review', 'vulnerability_scan']),
+              help='Analysis template to use')
+@click.option('--model', default='qwen-coder-30b',
+              type=click.Choice(['qwen-coder-30b', 'kimi-k2']),
+              help='LLM model to use')
+@click.option('--max-files', default=20, help='Maximum files to analyze')
+@click.option('--output', help='Output file path for report')
+@click.option('--format', 'report_format', default='json',
+              type=click.Choice(['json', 'html', 'markdown', 'csv']),
+              help='Report format')
+@click.pass_context
+def audit_v2(ctx: click.Context, project_path: str, template: str, model: str,
+             max_files: int, output: str, report_format: str) -> None:
+    """
+    Run comprehensive AI-powered code audit using the new audit engine.
+
+    This command uses the advanced audit engine with session management,
+    orchestrated analysis, result aggregation, and report generation.
+    """
+    console = ctx.obj['console']
+
+    try:
+        import asyncio
+        from ai_code_audit.audit.engine import AuditEngine
+        from ai_code_audit.audit.report_generator import ReportFormat
+        from ai_code_audit.llm.base import LLMModelType
+
+        console.print(f"[green]🚀 Starting Advanced AI Code Audit[/green]")
+        console.print(f"[blue]Project:[/blue] {project_path}")
+        console.print(f"[blue]Template:[/blue] {template}")
+        console.print(f"[blue]Model:[/blue] {model}")
+        console.print(f"[blue]Max files:[/blue] {max_files}")
+
+        async def run_advanced_audit():
+            # Map model names
+            model_mapping = {
+                'qwen-coder-30b': LLMModelType.QWEN_CODER_30B,
+                'kimi-k2': LLMModelType.KIMI_K2,
+            }
+
+            selected_model = model_mapping.get(model, LLMModelType.QWEN_CODER_30B)
+
+            # Initialize audit engine
+            console.print("\n[yellow]🔧 Initializing audit engine...[/yellow]")
+            audit_engine = AuditEngine()
+            await audit_engine.initialize()
+
+            # Progress callback
+            def progress_callback(session):
+                progress = session.progress
+                console.print(f"[blue]Progress:[/blue] {progress.completion_percentage:.1f}% "
+                            f"({progress.analyzed_files}/{progress.total_files} files)")
+                if progress.current_file:
+                    console.print(f"[dim]Currently analyzing: {progress.current_file}[/dim]")
+
+            # Start audit
+            console.print(f"\n[yellow]🔍 Starting analysis with {selected_model.name}...[/yellow]")
+            session_id = await audit_engine.start_audit(
+                project_path=project_path,
+                template=template,
+                model=selected_model,
+                max_files=max_files,
+                progress_callback=progress_callback
+            )
+
+            console.print(f"✅ Audit session started: {session_id}")
+
+            # Monitor progress
+            with console.status("[bold green]Running comprehensive audit...") as status:
+                while True:
+                    await asyncio.sleep(3)
+
+                    audit_status = await audit_engine.get_audit_status(session_id)
+                    if not audit_status:
+                        break
+
+                    progress_pct = audit_status['progress']['completion_percentage']
+                    status.update(f"[bold green]Audit in progress... {progress_pct:.1f}%")
+
+                    if audit_status['status'] in ['completed', 'failed', 'cancelled']:
+                        break
+
+            # Get final results
+            final_status = await audit_engine.get_audit_status(session_id)
+            if not final_status:
+                console.print("[red]❌ Failed to get audit status[/red]")
+                return
+
+            if final_status['status'] == 'completed':
+                console.print(f"\n[green]🎉 Audit completed successfully![/green]")
+                console.print(f"✅ Files analyzed: {final_status['progress']['analyzed_files']}")
+                console.print(f"✅ Success rate: {final_status['statistics']['success_rate']:.1f}%")
+
+                # Get detailed results
+                audit_result = await audit_engine.get_audit_results(session_id)
+                if audit_result:
+                    console.print(f"\n[yellow]📊 Security Analysis Summary:[/yellow]")
+                    console.print(f"✅ Total findings: {audit_result.total_findings}")
+                    console.print(f"🔴 Critical: {audit_result.critical_count}")
+                    console.print(f"🟠 High: {audit_result.high_count}")
+                    console.print(f"📈 Risk score: {audit_result.risk_score:.1f}/10")
+
+                    # Show top vulnerabilities
+                    if audit_result.vulnerabilities:
+                        console.print(f"\n[yellow]🔍 Top Security Issues:[/yellow]")
+                        for i, vuln in enumerate(audit_result.vulnerabilities[:5], 1):
+                            severity_color = {
+                                'critical': 'red',
+                                'high': 'orange',
+                                'medium': 'yellow',
+                                'low': 'green',
+                                'info': 'blue'
+                            }.get(vuln.severity.value, 'white')
+
+                            console.print(f"[{severity_color}]{i}. {vuln.title}[/{severity_color}]")
+                            console.print(f"   [dim]File: {vuln.file_path} | Severity: {vuln.severity.value.upper()}[/dim]")
+
+                # Generate report if requested
+                if output:
+                    console.print(f"\n[yellow]📄 Generating {report_format.upper()} report...[/yellow]")
+
+                    format_mapping = {
+                        'json': ReportFormat.JSON,
+                        'html': ReportFormat.HTML,
+                        'markdown': ReportFormat.MARKDOWN,
+                        'csv': ReportFormat.CSV,
+                    }
+
+                    selected_format = format_mapping.get(report_format, ReportFormat.JSON)
+
+                    report_content = await audit_engine.generate_report(
+                        session_id=session_id,
+                        format=selected_format,
+                        output_path=output
+                    )
+
+                    if report_content:
+                        console.print(f"✅ Report saved to: {output}")
+                    else:
+                        console.print("[red]❌ Failed to generate report[/red]")
+
+            elif final_status['status'] == 'failed':
+                console.print(f"[red]❌ Audit failed[/red]")
+                if final_status['statistics']['total_errors'] > 0:
+                    console.print(f"[red]Errors: {final_status['statistics']['total_errors']}[/red]")
+
+            else:
+                console.print(f"[yellow]⚠️  Audit ended with status: {final_status['status']}[/yellow]")
+
+            # Cleanup
+            await audit_engine.shutdown()
+
+        # Run the advanced audit
+        asyncio.run(run_advanced_audit())
+
+    except Exception as e:
+        if ctx.obj.get('debug'):
+            console.print_exception()
+        else:
+            console.print(f"[red]Error during advanced audit:[/red] {e}")
+        raise click.Abort()
+
+
+@main.command()
 @click.option(
     '--show-keys',
     is_flag=True,
