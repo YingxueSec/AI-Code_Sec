@@ -26,6 +26,7 @@ from ..validation.hallucination_detector import HallucinationDetector
 from ..validation.consistency_checker import ConsistencyChecker
 from ..validation.duplicate_detector import DuplicateDetector
 from ..validation.failure_handler import FailureHandler
+from .session_isolation import SessionIsolationManager, IsolationLevel
 from ..llm.manager import LLMManager
 from ..llm.base import LLMModelType
 from ..llm.prompts import PromptManager
@@ -67,6 +68,7 @@ class AuditEngine:
         self.consistency_checker: Optional[ConsistencyChecker] = None
         self.duplicate_detector: Optional[DuplicateDetector] = None
         self.failure_handler: FailureHandler = FailureHandler()
+        self.session_isolation: Optional[SessionIsolationManager] = None
         self.advanced_templates = AdvancedTemplateManager()
 
         # Initialize core components
@@ -173,6 +175,9 @@ class AuditEngine:
             self.hallucination_detector = HallucinationDetector(project_files)
             self.consistency_checker = ConsistencyChecker(project_files)
             self.duplicate_detector = DuplicateDetector()
+
+            # Initialize session isolation
+            self.session_isolation = SessionIsolationManager()
 
             # Create session configuration
             if session_config is None:
@@ -345,6 +350,56 @@ class AuditEngine:
         except Exception as e:
             logger.warning(f"Failed to read file {file_path}: {e}")
             return ""
+
+    async def create_isolated_session(self, session_id: str,
+                                    isolation_level: IsolationLevel = IsolationLevel.MODERATE) -> bool:
+        """Create an isolated session for audit operations."""
+        if not self.session_isolation:
+            logger.warning("Session isolation not initialized")
+            return False
+
+        try:
+            await self.session_isolation.create_session(session_id, isolation_level)
+            logger.info(f"Created isolated session {session_id} with {isolation_level.value} isolation")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to create isolated session {session_id}: {e}")
+            return False
+
+    async def suspend_session(self, session_id: str) -> bool:
+        """Suspend a session, preserving its state."""
+        if not self.session_isolation:
+            return False
+
+        return await self.session_isolation.suspend_session(session_id)
+
+    async def resume_session(self, session_id: str) -> bool:
+        """Resume a suspended session."""
+        if not self.session_isolation:
+            return False
+
+        return await self.session_isolation.resume_session(session_id)
+
+    async def destroy_session(self, session_id: str) -> bool:
+        """Destroy a session and clean up its resources."""
+        if not self.session_isolation:
+            return False
+
+        return await self.session_isolation.destroy_session(session_id)
+
+    def get_session_stats(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get statistics for a specific session."""
+        if not self.session_isolation:
+            return None
+
+        return self.session_isolation.get_session_stats(session_id)
+
+    def get_isolation_stats(self) -> Optional[Dict[str, Any]]:
+        """Get isolation system statistics."""
+        if not self.session_isolation:
+            return None
+
+        return self.session_isolation.get_isolation_stats()
     
     async def _run_audit_workflow(
         self,
