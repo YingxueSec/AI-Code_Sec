@@ -211,12 +211,8 @@ class BaseLLMProvider(ABC):
         """Get maximum context length for model."""
         # Default context lengths - should be overridden by providers
         context_lengths = {
-            LLMModelType.QWEN_CODER_30B: 32768,
-            LLMModelType.QWEN_PLUS: 32768,
-            LLMModelType.QWEN_MAX: 32768,
-            LLMModelType.KIMI_8K: 8192,
-            LLMModelType.KIMI_32K: 32768,
-            LLMModelType.KIMI_128K: 131072,
+            LLMModelType.QWEN_CODER_30B: 262144,  # 256K tokens (262,144)
+            LLMModelType.KIMI_K2: 128000,         # 128K tokens
         }
         return context_lengths.get(model, 4096)
     

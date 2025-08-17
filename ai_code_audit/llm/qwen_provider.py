@@ -53,9 +53,9 @@ class QwenProvider(BaseLLMProvider):
     def get_max_context_length(self, model: LLMModelType) -> int:
         """Get maximum context length for Qwen models."""
         context_lengths = {
-            LLMModelType.QWEN_CODER_30B: 32768,
+            LLMModelType.QWEN_CODER_30B: 262144,  # 256K tokens (262,144)
         }
-        return context_lengths.get(model, 32768)
+        return context_lengths.get(model, 262144)
     
     async def chat_completion(self, request: LLMRequest) -> LLMResponse:
         """
