@@ -339,40 +339,55 @@ class TestPromptManagement:
     
     def test_prompt_template_creation(self):
         """Test creating prompt templates."""
+        from ai_code_audit.llm.prompts import PromptType
+
         template = PromptTemplate(
             name="security_analysis",
-            template="Analyze this code for security issues: {code}",
-            required_variables=["code"],
+            type=PromptType.SECURITY_ANALYSIS,
+            system_prompt="You are a security analyst.",
+            user_prompt_template="Analyze this code for security issues: {code}",
+            variables=["code"],
             description="Security analysis template"
         )
-        
+
         assert template.name == "security_analysis"
-        assert "code" in template.required_variables
+        assert "code" in template.variables
         assert template.description is not None
     
     def test_prompt_template_render(self):
-        """Test rendering prompt templates."""
-        template = PromptTemplate(
-            name="test_template",
-            template="Hello {name}, your code is: {code}",
-            required_variables=["name", "code"]
+        """Test rendering prompt templates through manager."""
+        manager = PromptManager()
+
+        # Use existing template
+        rendered = manager.generate_prompt(
+            "security_audit",
+            {
+                "language": "python",
+                "file_path": "test.py",
+                "project_type": "web_app",
+                "dependencies": "flask",
+                "code_content": "print('hello')",
+                "additional_context": "test context"
+            }
         )
-        
-        rendered = template.render(name="Alice", code="print('hello')")
-        
-        assert "Hello Alice" in rendered
-        assert "print('hello')" in rendered
+
+        assert rendered is not None
+        assert "system" in rendered
+        assert "user" in rendered
+        assert "print('hello')" in rendered["user"]
     
     def test_prompt_template_missing_variable(self):
         """Test prompt template with missing variables."""
-        template = PromptTemplate(
-            name="test_template",
-            template="Hello {name}, your code is: {code}",
-            required_variables=["name", "code"]
+        manager = PromptManager()
+
+        # Try to render with missing variables
+        rendered = manager.generate_prompt(
+            "security_audit",
+            {"language": "python"}  # Missing required variables
         )
-        
-        with pytest.raises(KeyError):
-            template.render(name="Alice")  # Missing 'code' variable
+
+        # Should return None or handle gracefully
+        assert rendered is None
     
     def test_prompt_manager_initialization(self):
         """Test prompt manager initialization."""
@@ -411,17 +426,22 @@ class TestPromptManagement:
     def test_prompt_manager_render_template(self):
         """Test rendering templates through manager."""
         manager = PromptManager()
-        
-        rendered = manager.render_template(
-            "security_analysis",
-            code="SELECT * FROM users",
-            file_path="query.py",
-            language="python"
+
+        rendered = manager.generate_prompt(
+            "security_audit",
+            {
+                "language": "python",
+                "file_path": "query.py",
+                "project_type": "web_app",
+                "dependencies": "none",
+                "code_content": "SELECT * FROM users",
+                "additional_context": "database query"
+            }
         )
-        
-        assert "SELECT * FROM users" in rendered
-        assert "query.py" in rendered
-        assert isinstance(rendered, str)
+
+        assert rendered is not None
+        assert "SELECT * FROM users" in rendered["user"]
+        assert "query.py" in rendered["user"]
 
 
 class TestLLMIntegration:

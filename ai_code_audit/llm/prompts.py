@@ -381,8 +381,7 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
                         type=PromptType.SECURITY_AUDIT,  # Map to security audit type
                         system_prompt=advanced_template.system_prompt,
                         user_prompt_template=advanced_template.user_prompt,
-                        required_variables=["language", "file_path", "code_content"],
-                        optional_variables=["project_type", "dependencies", "additional_context"],
+                        variables=["language", "file_path", "code_content", "project_type", "dependencies", "additional_context"],
                         description=advanced_template.description
                     )
                     self.templates[template_name] = prompt_template
