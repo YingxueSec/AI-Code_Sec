@@ -16,9 +16,13 @@ from datetime import datetime
 
 from ..core.models import ProjectInfo
 from ..analysis.project_analyzer import ProjectAnalyzer
+from ..analysis.code_retrieval import CodeRetriever
+from ..analysis.context_manager import ContextManager
+from ..analysis.cache_manager import CacheManager, CacheType
 from ..llm.manager import LLMManager
 from ..llm.base import LLMModelType
 from ..llm.prompts import PromptManager
+from ..templates.advanced_templates import AdvancedTemplateManager
 # from ..database.services import DatabaseService  # Optional database integration
 
 from .session_manager import AuditSessionManager, AuditSession, SessionConfig, SessionStatus
@@ -36,20 +40,32 @@ class AuditEngine:
         self,
         llm_manager: Optional[LLMManager] = None,
         db_session: Optional[Any] = None,
-        project_analyzer: Optional[ProjectAnalyzer] = None
+        project_analyzer: Optional[ProjectAnalyzer] = None,
+        enable_caching: bool = True,
+        cache_dir: Optional[str] = None
     ):
         """Initialize audit engine."""
         self.llm_manager = llm_manager or LLMManager()
         self.db_session = db_session
         self.project_analyzer = project_analyzer or ProjectAnalyzer()
 
-        # Initialize components
+        # Initialize advanced components
+        self.code_retriever: Optional[CodeRetriever] = None
+        self.context_manager: Optional[ContextManager] = None
+        self.cache_manager: Optional[CacheManager] = None
+        self.advanced_templates = AdvancedTemplateManager()
+
+        # Initialize core components
         self.session_manager = AuditSessionManager(db_session)
         self.prompt_manager = PromptManager()
         self.orchestrator = AnalysisOrchestrator(self.llm_manager, self.prompt_manager)
         self.aggregator = ResultAggregator()
         self.report_generator = ReportGenerator()
-        
+
+        # Configuration
+        self.enable_caching = enable_caching
+        self.cache_dir = cache_dir
+
         # State
         self.is_initialized = False
     
@@ -110,7 +126,9 @@ class AuditEngine:
         model: Optional[LLMModelType] = None,
         max_files: int = 50,
         session_config: Optional[SessionConfig] = None,
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
+        use_advanced_context: bool = True,
+        use_caching: bool = True
     ) -> str:
         """Start a new audit session."""
         if not self.is_initialized:
@@ -121,7 +139,15 @@ class AuditEngine:
         try:
             # Analyze project structure
             project_info = await self.project_analyzer.analyze_project(project_path)
-            
+
+            # Initialize advanced components with project info
+            if use_advanced_context:
+                self.code_retriever = CodeRetriever(project_info)
+                self.context_manager = ContextManager(project_info, self.code_retriever)
+
+            if use_caching and self.enable_caching:
+                self.cache_manager = CacheManager(self.cache_dir)
+
             # Create session configuration
             if session_config is None:
                 session_config = SessionConfig(
@@ -129,7 +155,7 @@ class AuditEngine:
                     max_concurrent_tasks=3,
                     timeout_minutes=60
                 )
-            
+
             # Create audit session
             session = await self.session_manager.create_session(
                 project_path=project_path,

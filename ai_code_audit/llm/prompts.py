@@ -44,6 +44,7 @@ class PromptManager:
         """Initialize prompt manager with predefined templates."""
         self.templates: Dict[str, PromptTemplate] = {}
         self._load_default_templates()
+        self._load_advanced_templates()
     
     def _load_default_templates(self):
         """Load default prompt templates."""
@@ -363,3 +364,32 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
                 logger.error(f"Failed to import template '{name}': {e}")
         
         return imported
+
+    def _load_advanced_templates(self):
+        """Load advanced security templates."""
+        try:
+            from ..templates.advanced_templates import AdvancedTemplateManager
+
+            advanced_manager = AdvancedTemplateManager()
+
+            # Convert advanced templates to prompt templates
+            for template_name in advanced_manager.list_templates():
+                advanced_template = advanced_manager.get_template(template_name)
+                if advanced_template:
+                    prompt_template = PromptTemplate(
+                        name=template_name,
+                        type=PromptType.SECURITY_AUDIT,  # Map to security audit type
+                        system_prompt=advanced_template.system_prompt,
+                        user_prompt_template=advanced_template.user_prompt,
+                        required_variables=["language", "file_path", "code_content"],
+                        optional_variables=["project_type", "dependencies", "additional_context"],
+                        description=advanced_template.description
+                    )
+                    self.templates[template_name] = prompt_template
+
+            logger.info(f"Loaded {len(advanced_manager.list_templates())} advanced security templates")
+
+        except ImportError as e:
+            logger.warning(f"Advanced templates not available: {e}")
+        except Exception as e:
+            logger.error(f"Failed to load advanced templates: {e}")
