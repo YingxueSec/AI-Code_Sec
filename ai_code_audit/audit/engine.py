@@ -19,6 +19,9 @@ from ..analysis.project_analyzer import ProjectAnalyzer
 from ..analysis.code_retrieval import CodeRetriever
 from ..analysis.context_manager import ContextManager
 from ..analysis.cache_manager import CacheManager, CacheType
+from ..analysis.coverage_tracker import CoverageTracker
+from ..analysis.task_matrix import TaskMatrix, AnalysisTask, TaskType
+from ..analysis.coverage_reporter import CoverageReporter
 from ..llm.manager import LLMManager
 from ..llm.base import LLMModelType
 from ..llm.prompts import PromptManager
@@ -53,6 +56,9 @@ class AuditEngine:
         self.code_retriever: Optional[CodeRetriever] = None
         self.context_manager: Optional[ContextManager] = None
         self.cache_manager: Optional[CacheManager] = None
+        self.coverage_tracker: Optional[CoverageTracker] = None
+        self.task_matrix: Optional[TaskMatrix] = None
+        self.coverage_reporter: Optional[CoverageReporter] = None
         self.advanced_templates = AdvancedTemplateManager()
 
         # Initialize core components
@@ -147,6 +153,11 @@ class AuditEngine:
 
             if use_caching and self.enable_caching:
                 self.cache_manager = CacheManager(self.cache_dir)
+
+            # Initialize coverage tracking
+            self.coverage_tracker = CoverageTracker(project_info)
+            self.task_matrix = TaskMatrix()
+            self.coverage_reporter = CoverageReporter(self.coverage_tracker)
 
             # Create session configuration
             if session_config is None:
@@ -256,7 +267,7 @@ class AuditEngine:
     async def list_active_audits(self) -> List[Dict[str, Any]]:
         """List all active audit sessions."""
         sessions = await self.session_manager.list_active_sessions()
-        
+
         return [
             {
                 'session_id': session.session_id,
@@ -268,6 +279,48 @@ class AuditEngine:
             }
             for session in sessions
         ]
+
+    async def generate_coverage_report(
+        self,
+        output_path: str,
+        format: str = "html"
+    ) -> Optional[str]:
+        """Generate coverage analysis report."""
+        if not self.coverage_reporter:
+            logger.warning("Coverage reporter not initialized")
+            return None
+
+        try:
+            if format.lower() == "html":
+                return self.coverage_reporter.generate_html_report(output_path)
+            elif format.lower() == "json":
+                self.coverage_reporter.generate_json_report(output_path)
+                return f"JSON coverage report generated: {output_path}"
+            elif format.lower() == "markdown":
+                return self.coverage_reporter.generate_markdown_report(output_path)
+            else:
+                logger.error(f"Unsupported coverage report format: {format}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to generate coverage report: {e}")
+            return None
+
+    def get_coverage_stats(self) -> Optional[Dict[str, Any]]:
+        """Get current coverage statistics."""
+        if not self.coverage_tracker:
+            return None
+
+        stats = self.coverage_tracker.get_coverage_stats()
+        return {
+            'total_units': stats.total_units,
+            'analyzed_units': stats.analyzed_units,
+            'pending_units': stats.pending_units,
+            'skipped_units': stats.skipped_units,
+            'failed_units': stats.failed_units,
+            'coverage_percentage': stats.coverage_percentage,
+            'success_rate': stats.success_rate,
+        }
     
     async def _run_audit_workflow(
         self,
