@@ -10,6 +10,7 @@ This module tests both SessionManager and SessionIsolationManager:
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 import tempfile
 import threading
@@ -35,7 +36,7 @@ from ai_code_audit.core.exceptions import AuditError
 class TestSessionManager:
     """Test SessionManager functionality."""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def session_manager(self):
         """Fixture providing a session manager."""
         manager = SessionManager()
@@ -435,14 +436,14 @@ class TestSessionIsolationManager:
 class TestSessionIntegration:
     """Test integration between SessionManager and SessionIsolationManager."""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def integrated_managers(self):
         """Fixture providing both managers."""
         session_manager = SessionManager()
         isolation_manager = SessionIsolationManager()
-        
+
         yield session_manager, isolation_manager
-        
+
         # Cleanup
         for session_id in list(session_manager.active_sessions.keys()):
             await session_manager.cleanup_session(session_id)

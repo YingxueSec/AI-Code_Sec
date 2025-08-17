@@ -10,6 +10,7 @@ This module tests:
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from unittest.mock import Mock, AsyncMock, patch
 from pathlib import Path
@@ -115,20 +116,20 @@ class TestDatabaseConnection:
 class TestDatabaseModels:
     """Test SQLAlchemy model operations."""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def db_session(self, test_db_url):
         """Fixture providing database session."""
         manager = DatabaseManager(test_db_url)
         await manager.connect()
-        
+
         # Create tables
         from ai_code_audit.database.models import Base
         async with manager.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        
+
         async with manager.get_session() as session:
             yield session
-        
+
         await manager.disconnect()
     
     @pytest.fixture
@@ -255,17 +256,17 @@ class TestDatabaseModels:
 class TestDatabaseServices:
     """Test database service layer."""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def db_manager(self, test_db_url):
         """Fixture providing database manager."""
         manager = DatabaseManager(test_db_url)
         await manager.connect()
-        
+
         # Create tables
         from ai_code_audit.database.models import Base
         async with manager.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        
+
         yield manager
         await manager.disconnect()
     
@@ -426,24 +427,24 @@ class TestDatabaseErrorHandling:
 class TestDatabaseIntegration:
     """Test database integration scenarios."""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def integrated_setup(self, test_db_url):
         """Fixture providing integrated database setup."""
         manager = DatabaseManager(test_db_url)
         await manager.connect()
-        
+
         # Create tables
         from ai_code_audit.database.models import Base
         async with manager.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        
+
         # Initialize services
         session_service = AuditSessionService(manager)
         result_service = AuditResultService(manager)
         issue_service = SecurityIssueService(manager)
-        
+
         yield manager, session_service, result_service, issue_service
-        
+
         await manager.disconnect()
     
     @pytest.fixture

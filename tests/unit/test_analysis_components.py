@@ -10,6 +10,7 @@ This module tests:
 """
 
 import pytest
+import pytest_asyncio
 import tempfile
 import ast
 from pathlib import Path
