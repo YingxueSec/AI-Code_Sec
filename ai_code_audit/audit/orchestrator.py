@@ -344,8 +344,11 @@ class AnalysisOrchestrator:
             'code_content': content,
             'file_size': file_info.size,
             'additional_context': f"File analysis for {file_info.path}",
+            # Add project-level variables (use defaults if not available)
+            'project_type': 'web_application',  # Default for now
+            'dependencies': 'flask, sqlite3, subprocess',  # Default for test project
         }
-        
+
         # Add template-specific variables
         if task.template == 'security_audit':
             variables['security_focus'] = 'comprehensive'
