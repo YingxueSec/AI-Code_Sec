@@ -352,14 +352,32 @@ class AnalysisOrchestrator:
         # Add template-specific variables
         if task.template == 'security_audit':
             variables['security_focus'] = 'comprehensive'
+        elif task.template == 'security_audit_enhanced':
+            variables['security_focus'] = 'enhanced'
+            variables['analysis_depth'] = 'deep'
+        elif task.template == 'security_audit_ultra':
+            variables['security_focus'] = 'ultra'
+            variables['analysis_depth'] = 'maximum'
+            variables['detection_target'] = '95%+'
         elif task.template == 'code_review':
             variables['target_element'] = f"File: {file_info.path}"
             variables['context'] = f"Code review analysis"
         elif task.template == 'vulnerability_scan':
             variables['scan_depth'] = 'deep'
         
+        # Debug: print variables for troubleshooting
+        logger.info(f"Template: {task.template}, Variables: {list(variables.keys())}")
+        logger.info(f"Variables content: {variables}")
+
         prompt = self.prompt_manager.generate_prompt(task.template, variables)
         if not prompt:
+            # Get template to check required variables
+            template = self.prompt_manager.get_template(task.template)
+            if template:
+                missing_vars = set(template.variables) - set(variables.keys())
+                logger.error(f"Missing variables for {task.template}: {missing_vars}")
+                logger.error(f"Required: {template.variables}")
+                logger.error(f"Provided: {list(variables.keys())}")
             raise Exception(f"Failed to generate prompt for template {task.template}")
         
         # Create LLM request

@@ -265,7 +265,7 @@ def scan(ctx: click.Context, project_path: str, output_format: str, output_file:
 )
 @click.option(
     '--template',
-    type=click.Choice(['security_audit', 'security_audit_enhanced', 'code_review', 'vulnerability_scan']),
+    type=click.Choice(['security_audit', 'security_audit_enhanced', 'security_audit_ultra', 'code_review', 'vulnerability_scan']),
     default='security_audit',
     help='Analysis template to use'
 )
@@ -379,6 +379,10 @@ def audit(ctx: click.Context, project_path: str, model: str, template: str, max_
                         # Add template-specific variables
                         if template == 'security_audit':
                             variables['additional_context'] = f"Project: {project_info.name}, Architecture: {project_info.architecture_pattern or 'Unknown'}"
+                        elif template == 'security_audit_enhanced':
+                            variables['additional_context'] = f"Enhanced analysis for {project_info.name}, Architecture: {project_info.architecture_pattern or 'Unknown'}"
+                        elif template == 'security_audit_ultra':
+                            variables['additional_context'] = f"Ultra-deep analysis for {project_info.name}, Architecture: {project_info.architecture_pattern or 'Unknown'}, Target: 95%+ detection rate"
                         elif template == 'code_review':
                             variables['target_element'] = f"File: {file_info.path}"
                             variables['context'] = f"Project: {project_info.name}, Type: {project_info.project_type.value}"
@@ -531,7 +535,7 @@ def version(ctx: click.Context) -> None:
 @main.command()
 @click.argument('project_path', default='.')
 @click.option('--template', default='security_audit',
-              type=click.Choice(['security_audit', 'security_audit_enhanced', 'code_review', 'vulnerability_scan']),
+              type=click.Choice(['security_audit', 'security_audit_enhanced', 'security_audit_ultra', 'code_review', 'vulnerability_scan']),
               help='Analysis template to use')
 @click.option('--model', default='qwen-coder-30b',
               type=click.Choice(['qwen-coder-30b', 'kimi-k2']),
