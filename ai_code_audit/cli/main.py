@@ -265,7 +265,7 @@ def scan(ctx: click.Context, project_path: str, output_format: str, output_file:
 )
 @click.option(
     '--template',
-    type=click.Choice(['security_audit', 'code_review', 'vulnerability_scan']),
+    type=click.Choice(['security_audit', 'security_audit_enhanced', 'code_review', 'vulnerability_scan']),
     default='security_audit',
     help='Analysis template to use'
 )
@@ -531,7 +531,7 @@ def version(ctx: click.Context) -> None:
 @main.command()
 @click.argument('project_path', default='.')
 @click.option('--template', default='security_audit',
-              type=click.Choice(['security_audit', 'code_review', 'vulnerability_scan']),
+              type=click.Choice(['security_audit', 'security_audit_enhanced', 'code_review', 'vulnerability_scan']),
               help='Analysis template to use')
 @click.option('--model', default='qwen-coder-30b',
               type=click.Choice(['qwen-coder-30b', 'kimi-k2']),
