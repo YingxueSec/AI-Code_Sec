@@ -8,6 +8,7 @@ import click
 from rich.console import Console
 from rich.traceback import install
 from pathlib import Path
+from typing import List, Dict
 import sys
 import os
 
@@ -265,9 +266,9 @@ def scan(ctx: click.Context, project_path: str, output_format: str, output_file:
 )
 @click.option(
     '--template',
-    type=click.Choice(['security_audit', 'security_audit_enhanced', 'security_audit_ultra', 'code_review', 'vulnerability_scan']),
-    default='security_audit',
-    help='Analysis template to use'
+    type=click.Choice(['security_audit', 'security_audit_enhanced', 'security_audit_ultra', 'security_audit_chinese', 'code_review', 'vulnerability_scan']),
+    default='security_audit_chinese',
+    help='Analysis template to use (default: Chinese template for Chinese reports)'
 )
 @click.option(
     '--max-files',
@@ -383,6 +384,8 @@ def audit(ctx: click.Context, project_path: str, model: str, template: str, max_
                             variables['additional_context'] = f"Enhanced analysis for {project_info.name}, Architecture: {project_info.architecture_pattern or 'Unknown'}"
                         elif template == 'security_audit_ultra':
                             variables['additional_context'] = f"Ultra-deep analysis for {project_info.name}, Architecture: {project_info.architecture_pattern or 'Unknown'}, Target: 95%+ detection rate"
+                        elif template == 'security_audit_chinese':
+                            variables['additional_context'] = f"项目: {project_info.name}, 架构: {project_info.architecture_pattern or '未知'}, 要求: 中文安全审计报告"
                         elif template == 'code_review':
                             variables['target_element'] = f"File: {file_info.path}"
                             variables['context'] = f"Project: {project_info.name}, Type: {project_info.project_type.value}"
@@ -404,7 +407,7 @@ def audit(ctx: click.Context, project_path: str, model: str, template: str, max_
                             ],
                             model=selected_model,
                             temperature=0.1,
-                            max_tokens=1500
+                            max_tokens=8192  # 增加到8K tokens以确保完整输出
                         )
 
                         # Send to LLM
@@ -439,18 +442,53 @@ def audit(ctx: click.Context, project_path: str, model: str, template: str, max_
                 for result in audit_results:
                     console.print(f"\n[bold cyan]{result['file']}[/bold cyan] ({result['language']})")
                     console.print("-" * 60)
-                    # Show analysis with word wrapping
+                    # Show complete analysis without truncation
                     analysis = result['analysis']
-                    if len(analysis) > 500:
-                        analysis = analysis[:500] + "\n... (truncated)"
                     console.print(analysis)
 
-                # Save results if requested
+                # Save results if requested or auto-generate enabled
+                from ai_code_audit.core.config import ConfigManager
+                config_manager = ConfigManager()
+                config = config_manager.load_config()
+
                 if output_file:
                     output_path = Path(output_file)
                     with open(output_path, 'w') as f:
                         json.dump(audit_results, f, indent=2, default=str)
                     console.print(f"\n[green]Results saved to:[/green] {output_path}")
+
+                # Auto-generate default reports if enabled
+                elif config.reports.auto_generate_reports:
+                    import datetime
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    project_name = Path(project_path).name.replace(' ', '_').replace('-', '_')
+
+                    # Create reports directory
+                    reports_dir = Path(config.reports.default_output_dir)
+                    reports_dir.mkdir(parents=True, exist_ok=True)
+
+                    console.print(f"\n[yellow]📄 Auto-generating reports in:[/yellow] {reports_dir}")
+
+                    for format_type in config.reports.default_formats:
+                        filename = config.reports.filename_template.format(
+                            timestamp=timestamp,
+                            project_name=project_name
+                        )
+
+                        if format_type.lower() == "json":
+                            output_path = reports_dir / f"{filename}.json"
+                            with open(output_path, 'w', encoding='utf-8') as f:
+                                json.dump(audit_results, f, indent=2, default=str, ensure_ascii=False)
+                            console.print(f"  ✅ JSON report: {output_path}")
+
+                        elif format_type.lower() == "markdown":
+                            output_path = reports_dir / f"{filename}.md"
+                            md_content = _convert_to_markdown(audit_results, project_path)
+                            with open(output_path, 'w', encoding='utf-8') as f:
+                                f.write(md_content)
+                            console.print(f"  ✅ Markdown report: {output_path}")
+
+                    console.print(f"\n[green]✅ Auto-generated {len(config.reports.default_formats)} report(s)[/green]")
 
             # Clean up
             await llm_manager.close()
@@ -790,6 +828,97 @@ def config(ctx: click.Context, show_keys: bool) -> None:
         else:
             console.print(f"[red]Error loading configuration:[/red] {e}")
         raise click.Abort()
+
+
+def _convert_to_markdown(audit_results: List[Dict], project_path: str) -> str:
+    """Convert audit results to Markdown format in Chinese."""
+    import datetime
+
+    md_content = f"""# 安全审计报告
+
+## 项目信息
+- **项目路径:** {project_path}
+- **生成时间:** {datetime.datetime.now().strftime("%Y年%m月%d日 %H:%M:%S")}
+- **分析文件数:** {len(audit_results)}
+
+## 摘要
+"""
+
+    # Count vulnerabilities by severity
+    total_vulns = 0
+    critical_count = 0
+    high_count = 0
+    medium_count = 0
+    low_count = 0
+
+    for result in audit_results:
+        analysis = result.get('analysis', '')
+        total_vulns += analysis.count('🚨 VULNERABILITY')
+        critical_count += analysis.count('**Severity**: Critical')
+        high_count += analysis.count('**Severity**: High')
+        medium_count += analysis.count('**Severity**: Medium')
+        low_count += analysis.count('**Severity**: Low')
+
+    md_content += f"""- **发现漏洞总数:** {total_vulns}
+- **严重程度分布:**
+  - 🔴 严重 (Critical): {critical_count}
+  - 🟠 高危 (High): {high_count}
+  - 🟡 中危 (Medium): {medium_count}
+  - 🟢 低危 (Low): {low_count}
+
+"""
+
+    # Add detailed analysis for each file
+    for i, result in enumerate(audit_results, 1):
+        file_name = result.get('file', f'文件 {i}')
+        language = result.get('language', '未知')
+        analysis = result.get('analysis', '无分析结果')
+
+        # Translate language names to Chinese
+        language_map = {
+            'python': 'Python',
+            'javascript': 'JavaScript',
+            'typescript': 'TypeScript',
+            'java': 'Java',
+            'php': 'PHP',
+            'go': 'Go',
+            'rust': 'Rust',
+            'cpp': 'C++',
+            'c': 'C',
+            'csharp': 'C#',
+            'ruby': 'Ruby',
+            'kotlin': 'Kotlin',
+            'swift': 'Swift',
+            'scala': 'Scala'
+        }
+        language_cn = language_map.get(language.lower(), language)
+
+        md_content += f"""## {i}. {file_name} ({language_cn})
+
+{analysis}
+
+---
+
+"""
+
+    md_content += f"""
+## 报告元数据
+- **使用模型:** {audit_results[0].get('model_used', '未知') if audit_results else '未知'}
+- **消耗Token:** {sum(r.get('tokens_used', 0) for r in audit_results):,}
+- **生成工具:** AI代码审计系统 v2.0.1
+- **报告版本:** 中文版
+
+---
+
+> **免责声明:** 本报告由AI系统自动生成，仅供参考。建议结合人工审查进行最终安全评估。
+
+> **使用建议:**
+> - 🔴 严重和高危漏洞应立即修复
+> - 🟡 中危漏洞建议在下个版本修复
+> - 🟢 低危漏洞可在后续版本中优化
+"""
+
+    return md_content
 
 
 if __name__ == "__main__":

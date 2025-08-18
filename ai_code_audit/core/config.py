@@ -78,12 +78,26 @@ class SecurityRulesConfig:
 
 
 @dataclass
+class ReportConfig:
+    """Report generation configuration."""
+    include_code_snippets: bool = True
+    max_snippet_length: int = 500
+    include_fix_suggestions: bool = True
+    severity_threshold: str = "medium"
+    auto_generate_reports: bool = True
+    default_formats: List[str] = field(default_factory=lambda: ["json", "markdown"])
+    default_output_dir: str = "./reports"
+    filename_template: str = "audit_report_{timestamp}_{project_name}"
+
+
+@dataclass
 class AppConfig:
     """Main application configuration."""
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
     audit: AuditConfig = field(default_factory=AuditConfig)
     security_rules: SecurityRulesConfig = field(default_factory=SecurityRulesConfig)
+    reports: ReportConfig = field(default_factory=ReportConfig)
     cache_dir: str = "./cache"
     log_level: str = "INFO"
     debug: bool = False
@@ -270,7 +284,27 @@ class ConfigManager:
             for rule, enabled in rules_config.items():
                 if hasattr(base_config.security_rules, rule):
                     setattr(base_config.security_rules, rule, enabled)
-        
+
+        # Report settings
+        if 'advanced' in file_config and 'reports' in file_config['advanced']:
+            reports_config = file_config['advanced']['reports']
+            if 'include_code_snippets' in reports_config:
+                base_config.reports.include_code_snippets = reports_config['include_code_snippets']
+            if 'max_snippet_length' in reports_config:
+                base_config.reports.max_snippet_length = reports_config['max_snippet_length']
+            if 'include_fix_suggestions' in reports_config:
+                base_config.reports.include_fix_suggestions = reports_config['include_fix_suggestions']
+            if 'severity_threshold' in reports_config:
+                base_config.reports.severity_threshold = reports_config['severity_threshold']
+            if 'auto_generate_reports' in reports_config:
+                base_config.reports.auto_generate_reports = reports_config['auto_generate_reports']
+            if 'default_formats' in reports_config:
+                base_config.reports.default_formats = reports_config['default_formats']
+            if 'default_output_dir' in reports_config:
+                base_config.reports.default_output_dir = reports_config['default_output_dir']
+            if 'filename_template' in reports_config:
+                base_config.reports.filename_template = reports_config['filename_template']
+
         # Other settings
         if 'cache_dir' in file_config:
             base_config.cache_dir = file_config['cache_dir']
@@ -348,6 +382,18 @@ class ConfigManager:
                 'insecure_crypto': config.security_rules.insecure_crypto,
                 'code_injection': config.security_rules.code_injection,
                 'path_traversal': config.security_rules.path_traversal,
+            },
+            'advanced': {
+                'reports': {
+                    'include_code_snippets': config.reports.include_code_snippets,
+                    'max_snippet_length': config.reports.max_snippet_length,
+                    'include_fix_suggestions': config.reports.include_fix_suggestions,
+                    'severity_threshold': config.reports.severity_threshold,
+                    'auto_generate_reports': config.reports.auto_generate_reports,
+                    'default_formats': config.reports.default_formats,
+                    'default_output_dir': config.reports.default_output_dir,
+                    'filename_template': config.reports.filename_template,
+                }
             },
             'cache_dir': config.cache_dir,
             'log_level': config.log_level,
