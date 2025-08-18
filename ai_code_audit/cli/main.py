@@ -260,9 +260,9 @@ def scan(ctx: click.Context, project_path: str, output_format: str, output_file:
 @click.argument('project_path', type=click.Path(exists=True, file_okay=False, dir_okay=True), required=False, default='.')
 @click.option(
     '--model',
-    type=click.Choice(['qwen-coder-30b', 'kimi-k2']),
-    default='qwen-coder-30b',
-    help='LLM model to use for analysis'
+    type=click.Choice(['kimi-k2', 'qwen-coder-30b']),
+    default='kimi-k2',
+    help='LLM model to use for analysis (default: kimi-k2 for better stability)'
 )
 @click.option(
     '--template',
@@ -282,8 +282,36 @@ def scan(ctx: click.Context, project_path: str, output_format: str, output_file:
     type=click.Path(),
     help='Save results to file'
 )
+@click.option(
+    '--filter-files/--no-filter-files',
+    default=True,
+    help='Enable/disable intelligent file filtering (default: enabled)'
+)
+@click.option(
+    '--filter-level',
+    type=click.Choice(['strict', 'moderate', 'loose']),
+    default='moderate',
+    help='File filtering strictness level'
+)
+@click.option(
+    '--include-tests',
+    is_flag=True,
+    help='Include test files in audit (overrides filter settings)'
+)
+@click.option(
+    '--include-css',
+    is_flag=True,
+    help='Include CSS files in audit (overrides filter settings)'
+)
+@click.option(
+    '--show-filter-stats',
+    is_flag=True,
+    help='Show detailed file filtering statistics'
+)
 @click.pass_context
-def audit(ctx: click.Context, project_path: str, model: str, template: str, max_files: int, output_file: str) -> None:
+def audit(ctx: click.Context, project_path: str, model: str, template: str, max_files: int,
+          output_file: str, filter_files: bool, filter_level: str, include_tests: bool,
+          include_css: bool, show_filter_stats: bool) -> None:
     """
     Perform AI-powered security audit.
 
@@ -313,6 +341,48 @@ def audit(ctx: click.Context, project_path: str, model: str, template: str, max_
             project_info = await analyzer.analyze_project(project_path, save_to_db=False)
 
             console.print(f"✅ Found {len(project_info.files)} files in {len(project_info.languages)} languages")
+
+            # Step 1.5: Apply file filtering
+            if filter_files:
+                console.print("\n[yellow]🔍 Step 1.5:[/yellow] Applying intelligent file filtering...")
+
+                from ai_code_audit.core.config import ConfigManager
+                from ai_code_audit.core.file_filter import FileFilter
+
+                config_manager = ConfigManager()
+                config = config_manager.load_config()
+
+                # Adjust filter settings based on CLI options
+                if include_tests:
+                    config.file_filtering.conditional_ignore.test_files = False
+                if include_css:
+                    config.file_filtering.conditional_ignore.css_files = False
+
+                # Adjust filter level
+                if filter_level == 'strict':
+                    config.file_filtering.conditional_ignore.css_files = True
+                    config.file_filtering.conditional_ignore.test_files = True
+                    config.file_filtering.conditional_ignore.doc_files = True
+                elif filter_level == 'loose':
+                    config.file_filtering.conditional_ignore.css_files = False
+                    config.file_filtering.conditional_ignore.test_files = False
+                    config.file_filtering.conditional_ignore.doc_files = False
+
+                # Apply filtering
+                file_filter = FileFilter(config.file_filtering, project_path)
+                file_paths = [str(f.path) for f in project_info.files]
+                filtered_files, filter_stats = file_filter.filter_files(file_paths)
+
+                # Update project_info with filtered files
+                filtered_file_objects = [f for f in project_info.files if str(f.path) in filtered_files]
+                project_info.files = filtered_file_objects
+
+                console.print(f"✅ Filtered to {len(filtered_files)} files for audit")
+
+                if show_filter_stats:
+                    console.print("\n" + file_filter.get_filter_summary())
+            else:
+                console.print("⚠️  File filtering disabled - analyzing all files")
 
             # Step 2: Initialize LLM
             console.print("\n[yellow]🤖 Step 2:[/yellow] Initializing AI models...")
@@ -844,7 +914,7 @@ def _convert_to_markdown(audit_results: List[Dict], project_path: str) -> str:
 ## 摘要
 """
 
-    # Count vulnerabilities by severity
+    # Count vulnerabilities by severity - 支持中文和英文模式
     total_vulns = 0
     critical_count = 0
     high_count = 0
@@ -853,11 +923,39 @@ def _convert_to_markdown(audit_results: List[Dict], project_path: str) -> str:
 
     for result in audit_results:
         analysis = result.get('analysis', '')
+
+        # 统计漏洞总数 - 支持多种格式
+        total_vulns += analysis.count('🚨 漏洞')
+        total_vulns += analysis.count('## 🚨 漏洞')
+        total_vulns += analysis.count('### 🚨 漏洞')
         total_vulns += analysis.count('🚨 VULNERABILITY')
+
+        # 统计严重程度 - 支持中文格式
+        critical_count += analysis.count('严重程度**: 🔴 **严重**')
+        critical_count += analysis.count('严重程度**：严重')
+        critical_count += analysis.count('**严重程度**：严重')
         critical_count += analysis.count('**Severity**: Critical')
+
+        high_count += analysis.count('严重程度**: 🟠 **高危**')
+        high_count += analysis.count('严重程度**：高危')
+        high_count += analysis.count('**严重程度**：高危')
         high_count += analysis.count('**Severity**: High')
+
+        medium_count += analysis.count('严重程度**: 🟡 **中危**')
+        medium_count += analysis.count('严重程度**：中危')
+        medium_count += analysis.count('**严重程度**：中危')
         medium_count += analysis.count('**Severity**: Medium')
+
+        low_count += analysis.count('严重程度**: 🟢 **低危**')
+        low_count += analysis.count('严重程度**：低危')
+        low_count += analysis.count('**严重程度**：低危')
         low_count += analysis.count('**Severity**: Low')
+
+    # 验证统计结果的合理性
+    calculated_total = critical_count + high_count + medium_count + low_count
+    if calculated_total > total_vulns:
+        # 如果分类统计大于总数，使用分类统计作为总数
+        total_vulns = calculated_total
 
     md_content += f"""- **发现漏洞总数:** {total_vulns}
 - **严重程度分布:**

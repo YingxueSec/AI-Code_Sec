@@ -144,19 +144,19 @@ HIGH_RISK_TOPICS: List[str] = [
     "data_exposure",
 ]
 
-# Default LLM configuration
+# Default LLM configuration (Kimi优先，更稳定)
 DEFAULT_LLM_CONFIG: Dict[str, Dict[str, any]] = {
+    "kimi": {
+        "model_name": "moonshotai/Kimi-K2-Instruct",
+        "max_tokens": 128000,
+        "temperature": 0.1,
+        "timeout": 60,
+    },
     "qwen": {
         "model_name": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
         "max_tokens": 32768,
         "temperature": 0.1,
         "timeout": 30,
-    },
-    "kimi": {
-        "model_name": "moonshotai/Kimi-K2-Instruct", 
-        "max_tokens": 128000,
-        "temperature": 0.1,
-        "timeout": 60,
     },
 }
 
