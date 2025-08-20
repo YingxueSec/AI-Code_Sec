@@ -10,6 +10,7 @@ This module provides report generation capabilities including:
 
 import json
 import os
+import re
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -20,6 +21,53 @@ import logging
 from .aggregator import AuditResult, VulnerabilitySeverity, VulnerabilityCategory
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_markup_content(text: str) -> str:
+    """
+    清理可能导致Rich markup错误的内容
+
+    Args:
+        text: 原始文本
+
+    Returns:
+        清理后的安全文本
+    """
+    if not isinstance(text, str):
+        return str(text)
+
+    # 转义Rich markup特殊字符
+    text = text.replace('[', '\\[').replace(']', '\\]')
+
+    # 移除可能导致问题的正则表达式模式
+    # 例如: [/^1\d{10}$/,"请输入正确的手机号"]
+    text = re.sub(r'\[/[^\]]*\]', '', text)
+
+    # 清理其他可能的markup模式
+    text = re.sub(r'\[[^\]]*\]', lambda m: m.group(0).replace('[', '\\[').replace(']', '\\]'), text)
+
+    return text
+
+
+def safe_console_print(console, message: str, style: str = None):
+    """
+    安全的控制台打印函数
+
+    Args:
+        console: Rich Console对象
+        message: 要打印的消息
+        style: 样式（可选）
+    """
+    try:
+        cleaned_message = sanitize_markup_content(message)
+        if style:
+            console.print(cleaned_message, style=style)
+        else:
+            console.print(cleaned_message)
+    except Exception as e:
+        # 降级到纯文本输出
+        logger.warning(f"Rich markup error, falling back to plain text: {e}")
+        print(f"{style}: {message}" if style else message)
 
 
 class ReportFormat(Enum):

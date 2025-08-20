@@ -50,6 +50,15 @@ class LLMConfig:
 
 
 @dataclass
+class PerformanceConfig:
+    """Performance configuration"""
+    max_parallel_requests: int = 5
+    request_timeout: int = 120
+    retry_attempts: int = 3
+    retry_delay: int = 2
+
+
+@dataclass
 class AuditConfig:
     """Audit configuration."""
     max_concurrent_sessions: int = 3
@@ -58,7 +67,7 @@ class AuditConfig:
         "python", "javascript", "typescript", "java", "go", "rust", "cpp", "c", "csharp", "php", "ruby"
     ])
     output_formats: List[str] = field(default_factory=lambda: ["json", "yaml", "table", "markdown"])
-    max_file_size: int = 100000  # 100KB
+    max_file_size: int = 1048576  # 1MB - 适合大型项目文件
     max_files_per_audit: int = 50
 
 
@@ -94,6 +103,7 @@ class ReportConfig:
 class ConditionalIgnoreConfig:
     """Conditional ignore settings"""
     css_files: bool = True
+    js_files: bool = True
     test_files: bool = True
     doc_files: bool = False
     log_files: bool = True
@@ -122,6 +132,9 @@ class FileFilteringConfig:
     css_patterns: List[str] = field(default_factory=lambda: [
         "*.css", "*.scss", "*.sass", "*.less", "*.styl"
     ])
+    js_patterns: List[str] = field(default_factory=lambda: [
+        "*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs"
+    ])
     doc_patterns: List[str] = field(default_factory=lambda: [
         "*.md", "*.txt", "*.rst", "*.adoc", "docs/**", "documentation/**"
     ])
@@ -140,12 +153,18 @@ class AppConfig:
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
     audit: AuditConfig = field(default_factory=AuditConfig)
+    performance: PerformanceConfig = field(default_factory=PerformanceConfig)
     security_rules: SecurityRulesConfig = field(default_factory=SecurityRulesConfig)
     reports: ReportConfig = field(default_factory=ReportConfig)
     file_filtering: FileFilteringConfig = field(default_factory=FileFilteringConfig)
     cache_dir: str = "./cache"
     log_level: str = "INFO"
     debug: bool = False
+
+    def dict(self) -> Dict[str, Any]:
+        """Convert config to dictionary."""
+        from dataclasses import asdict
+        return asdict(self)
 
 
 class ConfigManager:
@@ -322,6 +341,18 @@ class ConfigManager:
                 base_config.audit.supported_languages = audit_config['supported_languages']
             if 'output_formats' in audit_config:
                 base_config.audit.output_formats = audit_config['output_formats']
+
+        # Performance configuration
+        if 'performance' in file_config:
+            perf_config = file_config['performance']
+            if 'max_parallel_requests' in perf_config:
+                base_config.performance.max_parallel_requests = perf_config['max_parallel_requests']
+            if 'request_timeout' in perf_config:
+                base_config.performance.request_timeout = perf_config['request_timeout']
+            if 'retry_attempts' in perf_config:
+                base_config.performance.retry_attempts = perf_config['retry_attempts']
+            if 'retry_delay' in perf_config:
+                base_config.performance.retry_delay = perf_config['retry_delay']
         
         # Security rules
         if 'security_rules' in file_config:
@@ -453,6 +484,12 @@ class ConfigManager:
                 'output_formats': config.audit.output_formats,
                 'max_file_size': config.audit.max_file_size,
                 'max_files_per_audit': config.audit.max_files_per_audit,
+            },
+            'performance': {
+                'max_parallel_requests': config.performance.max_parallel_requests,
+                'request_timeout': config.performance.request_timeout,
+                'retry_attempts': config.performance.retry_attempts,
+                'retry_delay': config.performance.retry_delay,
             },
             'security_rules': {
                 'sql_injection': config.security_rules.sql_injection,

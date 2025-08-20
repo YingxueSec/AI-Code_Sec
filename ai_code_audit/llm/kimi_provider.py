@@ -12,10 +12,11 @@ from typing import List, Dict, Any, Optional
 import logging
 
 from ai_code_audit.llm.base import (
-    BaseLLMProvider, LLMRequest, LLMResponse, LLMUsage, 
+    BaseLLMProvider, LLMRequest, LLMResponse, LLMUsage,
     LLMModelType, MessageRole, LLMMessage
 )
 from ai_code_audit.core.exceptions import LLMError, LLMAPIError, LLMRateLimitError
+from ai_code_audit.llm.rate_limiter import get_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +36,11 @@ class KimiProvider(BaseLLMProvider):
             base_url = "https://api.siliconflow.cn/v1"
 
         super().__init__(api_key, base_url)
-        self.max_retries = 3
-        self.retry_delay = 1.0
+        self.max_retries = 5  # 增加重试次数
+        self.base_retry_delay = 1.0
+        self.max_retry_delay = 60.0  # 最大重试延迟
+        self.timeout_multiplier = 1.5  # 超时后的延迟倍数
+        self.rate_limiter = get_rate_limiter()  # TPM/RPM限制管理
     
     @property
     def provider_name(self) -> str:
@@ -72,10 +76,17 @@ class KimiProvider(BaseLLMProvider):
         """
         # Validate request
         self.validate_request(request)
-        
+
+        # 估算内容长度用于TPM限制
+        content_length = sum(len(msg.content) for msg in request.messages)
+
+        # 应用TPM/RPM限制
+        if not await self.rate_limiter.acquire_with_estimation(content_length):
+            raise LLMRateLimitError("Rate limit exceeded - TPM or RPM limit reached")
+
         # Prepare API request
         api_request = self._prepare_api_request(request)
-        
+
         # Send request with retries
         start_time = time.time()
         
@@ -83,27 +94,58 @@ class KimiProvider(BaseLLMProvider):
             try:
                 response = await self._send_request(api_request)
                 response_time = time.time() - start_time
-                
-                return self._parse_response(response, request.model.value, response_time)
+
+                parsed_response = self._parse_response(response, request.model.value, response_time)
+
+                # 记录实际token使用量
+                if parsed_response.usage and parsed_response.usage.total_tokens:
+                    self.rate_limiter.record_actual_usage(parsed_response.usage.total_tokens)
+                else:
+                    # 如果没有usage信息，使用估算值
+                    estimated_tokens = self.rate_limiter._estimate_tokens(content_length)
+                    self.rate_limiter.record_actual_usage(estimated_tokens)
+
+                return parsed_response
                 
             except LLMRateLimitError:
                 if attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                    # 限流错误使用更长的延迟
+                    delay = min(self.base_retry_delay * (3 ** attempt), self.max_retry_delay)
                     logger.warning(f"Rate limit hit, retrying in {delay}s (attempt {attempt + 1})")
                     await asyncio.sleep(delay)
                     continue
                 else:
                     raise
-            
+
             except LLMAPIError as e:
                 if attempt < self.max_retries - 1 and e.is_retryable:
-                    delay = self.retry_delay * (2 ** attempt)
-                    logger.warning(f"API error, retrying in {delay}s: {e}")
+                    # 根据错误类型调整延迟策略
+                    if e.status_code == 502:
+                        # 服务器错误，等待更长时间
+                        delay = min(self.base_retry_delay * (4 ** attempt), self.max_retry_delay)
+                        logger.warning(f"Server error (502), retrying in {delay}s: {e}")
+                    elif e.status_code == 503:
+                        # 服务不可用，等待更长时间
+                        delay = min(self.base_retry_delay * (5 ** attempt), self.max_retry_delay)
+                        logger.warning(f"Service unavailable (503), retrying in {delay}s: {e}")
+                    elif "timeout" in str(e).lower():
+                        # 超时错误，使用超时倍数
+                        delay = min(self.base_retry_delay * self.timeout_multiplier * (2 ** attempt), self.max_retry_delay)
+                        logger.warning(f"Timeout error, retrying in {delay}s: {e}")
+                    else:
+                        # 其他错误，标准指数退避
+                        delay = min(self.base_retry_delay * (2 ** attempt), self.max_retry_delay)
+                        logger.warning(f"API error, retrying in {delay}s: {e}")
+
                     await asyncio.sleep(delay)
                     continue
                 else:
+                    # 记录错误到限流器
+                    self.rate_limiter.record_error()
                     raise
-        
+
+        # 记录错误到限流器
+        self.rate_limiter.record_error()
         raise LLMError("Max retries exceeded")
     
     async def validate_api_key(self) -> bool:
@@ -172,7 +214,18 @@ class KimiProvider(BaseLLMProvider):
                     raise LLMAPIError(f"API error: {error_msg}", status_code=response.status)
         
         except asyncio.TimeoutError:
-            raise LLMAPIError("Request timeout", is_retryable=True)
+            raise LLMAPIError("Request timeout - consider increasing timeout or reducing request size", is_retryable=True)
+        except aiohttp.ClientConnectorError as e:
+            raise LLMAPIError(f"Connection error: {e}", is_retryable=True)
+        except aiohttp.ClientResponseError as e:
+            if e.status == 502:
+                raise LLMAPIError(f"Bad Gateway (502): {e}", status_code=502, is_retryable=True)
+            elif e.status == 503:
+                raise LLMAPIError(f"Service Unavailable (503): {e}", status_code=503, is_retryable=True)
+            elif e.status == 504:
+                raise LLMAPIError(f"Gateway Timeout (504): {e}", status_code=504, is_retryable=True)
+            else:
+                raise LLMAPIError(f"HTTP error {e.status}: {e}", status_code=e.status, is_retryable=e.status >= 500)
         except Exception as e:
             if isinstance(e, LLMError):
                 raise

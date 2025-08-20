@@ -59,14 +59,20 @@ class FileFilter:
     def _matches_patterns(self, file_path: str, patterns: List[str]) -> bool:
         """Check if file matches any of the given patterns"""
         try:
-            file_path_obj = Path(file_path).resolve()
-            # Check if file is within project root
-            if not str(file_path_obj).startswith(str(self.project_root)):
-                return False
+            # 如果是相对路径，相对于项目根目录解析
+            if not os.path.isabs(file_path):
+                file_path_obj = self.project_root / file_path
+            else:
+                file_path_obj = Path(file_path)
 
-            rel_path = str(file_path_obj.relative_to(self.project_root))
+            # 确保路径存在且在项目根目录内
+            if file_path_obj.exists() and str(file_path_obj.resolve()).startswith(str(self.project_root.resolve())):
+                rel_path = str(file_path_obj.relative_to(self.project_root))
+            else:
+                # 如果文件不存在或不在项目内，使用原始路径
+                rel_path = file_path if not os.path.isabs(file_path) else os.path.basename(file_path)
         except (ValueError, OSError):
-            # If we can't get relative path, use the basename
+            # 如果路径解析失败，使用文件名
             rel_path = os.path.basename(file_path)
 
         for pattern in patterns:
@@ -132,7 +138,8 @@ class FileFilter:
         if not self.config.enabled:
             return True, "filtering_disabled"
         
-        file_path = str(Path(file_path).resolve())
+        # 保持原始路径格式，不强制解析为绝对路径
+        # file_path = str(Path(file_path).resolve())
         self.stats.total_files += 1
         
         # Force include check (highest priority)
@@ -165,7 +172,11 @@ class FileFilter:
         if conditional.css_files and self._matches_patterns(file_path, self.config.css_patterns):
             self.stats.filtered_files += 1
             return False, "css_file"
-        
+
+        if conditional.js_files and self._matches_patterns(file_path, self.config.js_patterns):
+            self.stats.filtered_files += 1
+            return False, "js_file"
+
         if conditional.test_files and self._matches_patterns(file_path, self.config.test_patterns):
             self.stats.filtered_files += 1
             return False, "test_file"

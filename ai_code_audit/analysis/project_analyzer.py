@@ -17,18 +17,21 @@ from ai_code_audit.core.exceptions import ProjectAnalysisError
 from ai_code_audit.analysis.file_scanner import FileScanner
 from ai_code_audit.analysis.language_detector import LanguageDetector
 from ai_code_audit.analysis.dependency_analyzer import DependencyAnalyzer
+from ai_code_audit.analysis.context_analyzer import ContextAnalyzer
 
 logger = logging.getLogger(__name__)
 
 
 class ProjectAnalyzer:
     """Comprehensive project analysis and information extraction."""
-    
-    def __init__(self):
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize project analyzer with component analyzers."""
-        self.file_scanner = FileScanner()
+        self.config = config
+        self.file_scanner = FileScanner(config=config)
         self.language_detector = LanguageDetector()
         self.dependency_analyzer = DependencyAnalyzer()
+        self.context_analyzer = ContextAnalyzer()
     
     async def analyze_project(self, project_path: str, save_to_db: bool = True) -> ProjectInfo:
         """

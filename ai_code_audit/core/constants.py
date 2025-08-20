@@ -29,7 +29,7 @@ SUPPORTED_LANGUAGES: Set[str] = {
 LANGUAGE_EXTENSIONS: Dict[str, str] = {
     ".py": "python",
     ".js": "javascript",
-    ".jsx": "javascript", 
+    ".jsx": "javascript",
     ".ts": "typescript",
     ".tsx": "typescript",
     ".java": "java",
@@ -45,6 +45,14 @@ LANGUAGE_EXTENSIONS: Dict[str, str] = {
     ".kt": "kotlin",
     ".swift": "swift",
     ".scala": "scala",
+    ".css": "css",
+    ".scss": "css",
+    ".sass": "css",
+    ".less": "css",
+    ".html": "html",
+    ".htm": "html",
+    ".xml": "xml",
+    ".json": "json",
 }
 
 # Default security rules configuration

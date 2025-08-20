@@ -273,8 +273,10 @@ async def main():
         print("   • Kimi models: moonshot-v1-8k, moonshot-v1-32k, moonshot-v1-128k")
         print("   • Added qwen-coder model option")
         print("\n🔧 Ready to test with real API:")
-        print("   python -m ai_code_audit.cli.main audit . --max-files 1 --model qwen-turbo")
-        print("   python -m ai_code_audit.cli.main audit . --max-files 1 --model kimi-8k")
+        print("   # Use the simplified audit function:")
+        print("   import asyncio")
+        print("   from ai_code_audit import audit_project")
+        print("   asyncio.run(audit_project('.', max_files=1))")
         return 0
     else:
         print("⚠️  Some tests failed. Please fix the issues above.")

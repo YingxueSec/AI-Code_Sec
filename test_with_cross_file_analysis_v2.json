@@ -1,0 +1,120 @@
+{
+  "project_path": "examples/test_oa-system",
+  "template": "owasp_top_10_2021",
+  "total_files": 5,
+  "findings": [
+    {
+      "file": "src/main/resources/static/plugins/kindeditor/plugins/baidumap/index.html",
+      "language": "javascript",
+      "type": "XSS跨站脚本攻击",
+      "severity": "high",
+      "line": 27,
+      "description": "代码直接使用 `getParam` 函数获取 URL 参数并拼接到 DOM 中，未对输入进行任何转义或过滤。特别是 `markersParam` 和 `centerParam` 等参数被用于创建地图标注和中心点，若攻击者构造恶意参数，可能引发 XSS 攻击。",
+      "code_snippet": "var markersArr = markersParam.split(',');\nvar point = new BMap.Point(markersArr[0], markersArr[1]);\nvar marker = new BMap.Marker(point);\nmap.addOverlay(marker);",
+      "impact": "攻击者可通过构造恶意参数注入脚本，执行任意 JavaScript，可能导致用户会话劫持、钓鱼等攻击。",
+      "recommendation": "对所有来自 URL 的参数进行严格的输入验证和输出转义，尤其是用于 DOM 操作的参数。建议使用白名单机制或对参数进行 HTML 转义处理。",
+      "issues": [
+        "代码直接使用 `getParam` 函数获取 URL 参数并拼接到 DOM 中，未对输入进行任何转义或过滤。特别是 `markersParam` 和 `centerParam` 等参数被用于创建地图标注和中心点，若攻击者构造恶意参数，可能引发 XSS 攻击。"
+      ],
+      "confidence": 0.9749999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9749999999999999,
+        "adjusted_confidence": 0.9749999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "高置信度问题，无需跨文件分析"
+      }
+    },
+    {
+      "file": "src/main/resources/static/plugins/kindeditor/plugins/baidumap/index.html",
+      "language": "javascript",
+      "type": "XSS跨站脚本攻击",
+      "severity": "high",
+      "line": 19,
+      "description": "多个参数如 `widthParam`、`heightParam` 被直接用于设置元素样式，未进行任何校验或转义。若攻击者传入恶意值，可能引发样式注入或 XSS。",
+      "code_snippet": "dituContent.style.width = widthParam + 'px';\ndituContent.style.height = heightParam + 'px';",
+      "impact": "攻击者可能通过构造恶意参数注入 CSS 样式或 JavaScript，导致页面行为异常或执行恶意脚本。",
+      "recommendation": "对所有用于设置样式或 DOM 属性的参数进行严格的数值范围和格式校验，避免直接拼接字符串。",
+      "issues": [
+        "多个参数如 `widthParam`、`heightParam` 被直接用于设置元素样式，未进行任何校验或转义。若攻击者传入恶意值，可能引发样式注入或 XSS。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(2行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "高置信度问题，无需跨文件分析"
+      }
+    },
+    {
+      "file": "src/main/resources/static/plugins/kindeditor/plugins/baidumap/index.html",
+      "language": "javascript",
+      "type": "代码注入",
+      "severity": "medium",
+      "line": 12,
+      "description": "使用 `RegExp` 构造器动态生成正则表达式，虽然参数是固定的字符串，但若 `name` 参数来自用户输入，可能引发正则表达式注入风险。",
+      "code_snippet": "return location.href.match(new RegExp('[?&]' + name + '=([^?&]+)', 'i')) ? decodeURIComponent(RegExp.$1) : '';",
+      "impact": "若 `name` 参数可被用户控制，攻击者可能构造恶意正则表达式，导致性能问题或正则表达式拒绝服务（ReDoS）。",
+      "recommendation": "确保 `name` 参数为预定义的白名单值，避免动态拼接正则表达式。若必须动态构造，应进行严格校验。",
+      "issues": [
+        "使用 `RegExp` 构造器动态生成正则表达式，虽然参数是固定的字符串，但若 `name` 参数来自用户输入，可能引发正则表达式注入风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "高置信度问题，无需跨文件分析"
+      }
+    }
+  ],
+  "summary": {
+    "total_findings": 3,
+    "files_analyzed": 5,
+    "completion_status": "success"
+  },
+  "timestamp": "2025-08-20 15:16:51.320950"
+}

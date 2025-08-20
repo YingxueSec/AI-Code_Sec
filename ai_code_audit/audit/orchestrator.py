@@ -459,7 +459,7 @@ class AnalysisOrchestrator:
         score = 0.0
         
         # File size factor (smaller files get higher priority for quick wins)
-        size_factor = max(0, 1 - (file_info.size / 100000))  # Normalize to 100KB
+        size_factor = max(0, 1 - (file_info.size / self.config.audit.max_file_size))  # Use config max file size
         score += size_factor * self.config.file_size_weight
         
         # Complexity factor (based on file type and location)

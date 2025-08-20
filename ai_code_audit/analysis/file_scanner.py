@@ -22,11 +22,25 @@ logger = logging.getLogger(__name__)
 
 class FileScanner:
     """Scans project directories and identifies source files."""
-    
-    def __init__(self, ignore_patterns: Optional[List[str]] = None):
-        """Initialize file scanner with ignore patterns."""
-        self.ignore_patterns = ignore_patterns or IGNORE_PATTERNS.copy()
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None, ignore_patterns: Optional[List[str]] = None):
+        """Initialize file scanner with configuration and ignore patterns."""
+        # 优先使用配置文件中的过滤规则
+        if config and config.get('file_filtering', {}).get('enabled', True):
+            file_filtering = config.get('file_filtering', {})
+            self.ignore_patterns = file_filtering.get('ignore_patterns', [])
+            self.max_file_size = file_filtering.get('max_file_size', 3145728)  # 3MB default
+            self.force_include = file_filtering.get('force_include', [])
+            logger.info(f"Loaded {len(self.ignore_patterns)} ignore patterns from config")
+        else:
+            # 降级到传统模式
+            self.ignore_patterns = ignore_patterns or IGNORE_PATTERNS.copy()
+            self.max_file_size = 3145728  # 3MB default
+            self.force_include = []
+            logger.info(f"Using default ignore patterns: {len(self.ignore_patterns)} patterns")
+
         self.supported_extensions = set(LANGUAGE_EXTENSIONS.keys())
+        logger.debug(f"FileScanner initialized with {len(self.ignore_patterns)} ignore patterns")
     
     def scan_directory(self, project_path: str) -> List[FileInfo]:
         """
@@ -54,24 +68,47 @@ class FileScanner:
             
             files = []
             total_scanned = 0
-            
+            filtered_by_ignore = 0
+            filtered_by_size = 0
+            filtered_by_type = 0
+
             for file_path in self._walk_directory(project_path):
                 total_scanned += 1
-                
+
+                # 详细的过滤统计
                 if self._should_ignore_file(file_path, project_path):
+                    # 检查具体的过滤原因
+                    try:
+                        file_size = file_path.stat().st_size
+                        if file_size > self.max_file_size:
+                            filtered_by_size += 1
+                        else:
+                            filtered_by_ignore += 1
+                    except:
+                        filtered_by_ignore += 1
                     continue
-                
+
                 if not self._is_source_file(file_path):
+                    filtered_by_type += 1
                     continue
-                
+
                 try:
                     file_info = self._create_file_info(file_path, project_path)
                     files.append(file_info)
                 except Exception as e:
                     logger.warning(f"Failed to process file {file_path}: {e}")
                     continue
-            
-            logger.info(f"Scanned {total_scanned} files, found {len(files)} source files")
+
+            # 详细的过滤统计日志
+            total_filtered = filtered_by_ignore + filtered_by_size + filtered_by_type
+            logger.info(f"📊 File Filtering Summary:")
+            logger.info(f"  • Total files scanned: {total_scanned}")
+            logger.info(f"  • Files included for audit: {len(files)}")
+            logger.info(f"  • Files filtered out: {total_filtered}")
+            logger.info(f"    - By ignore patterns: {filtered_by_ignore}")
+            logger.info(f"    - By file size: {filtered_by_size}")
+            logger.info(f"    - By file type: {filtered_by_type}")
+            logger.info(f"  • Filtering efficiency: {(total_filtered/total_scanned)*100:.1f}%")
             return files
             
         except Exception as e:
@@ -97,14 +134,33 @@ class FileScanner:
             return []
     
     def _should_ignore_file(self, file_path: Path, project_root: Path) -> bool:
-        """Check if file should be ignored based on patterns."""
+        """Check if file should be ignored based on patterns and size."""
         try:
             # Get relative path for pattern matching
             rel_path = file_path.relative_to(project_root)
-            
+            rel_path_str = str(rel_path)
+
+            # Check force include patterns first (highest priority)
+            for pattern in self.force_include:
+                if fnmatch.fnmatch(rel_path_str, pattern) or fnmatch.fnmatch(file_path.name, pattern):
+                    logger.debug(f"Force including file: {rel_path_str}")
+                    return False
+
+            # Check file size limit
+            try:
+                file_size = file_path.stat().st_size
+                if file_size > self.max_file_size:
+                    logger.info(f"Skipping large file: {rel_path_str} ({file_size/1024/1024:.1f}MB > {self.max_file_size/1024/1024:.1f}MB)")
+                    return True
+            except OSError:
+                logger.warning(f"Cannot get size for file: {rel_path_str}")
+                return True
+
+            # Check ignore patterns
             return self._should_ignore_path(file_path, project_root)
-            
-        except Exception:
+
+        except Exception as e:
+            logger.warning(f"Error checking file {file_path}: {e}")
             return True  # Ignore files we can't process
     
     def _should_ignore_path(self, path: Path, project_root: Path) -> bool:
