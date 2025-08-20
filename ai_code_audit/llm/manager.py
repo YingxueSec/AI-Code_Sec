@@ -76,6 +76,8 @@ class LLMManager:
         self.confidence_calculator = None
         self.context_analyzer = None
         self.cross_file_analyzer = None
+        self.frontend_optimizer = None
+        self.frontend_backend_mapper = None
         self.project_path = None  # 用于跨文件分析
         
         # Load configuration
@@ -437,8 +439,28 @@ class LLMManager:
         """
         from .base import LLMRequest
 
-        # 构建安全分析提示词
-        security_prompt = self._build_security_analysis_prompt(code, file_path, language, template)
+        # 前端代码优化处理
+        if self._is_frontend_file(file_path, language):
+            frontend_result = self._optimize_frontend_analysis(code, file_path, language)
+            if frontend_result.should_skip:
+                return {
+                    'success': True,
+                    'findings': [],
+                    'frontend_optimization': {
+                        'skipped': True,
+                        'reason': frontend_result.skip_reason,
+                        'time_saved': frontend_result.estimated_time_saved
+                    }
+                }
+            elif frontend_result.analysis_type in ['hotspot', 'input_extraction', 'light']:
+                # 使用优化的提示词
+                security_prompt = self._build_optimized_frontend_prompt(frontend_result, code, file_path, language)
+            else:
+                # 使用标准提示词
+                security_prompt = self._build_security_analysis_prompt(code, file_path, language, template)
+        else:
+            # 构建标准安全分析提示词
+            security_prompt = self._build_security_analysis_prompt(code, file_path, language, template)
 
         # 创建LLM请求 - 使用具体模型而不是"auto"
         from .base import LLMModelType, LLMMessage, MessageRole
@@ -925,5 +947,53 @@ class LLMManager:
         except ImportError as e:
             logger.warning(f"Failed to import CrossFileAnalyzer: {e}")
             self.cross_file_analyzer = None
+
+        # 初始化前端优化器
+        try:
+            from ..analysis.frontend_optimizer import FrontendOptimizer
+            from ..analysis.frontend_backend_mapper import FrontendBackendMapper
+            self.frontend_optimizer = FrontendOptimizer()
+            self.frontend_backend_mapper = FrontendBackendMapper()
+        except ImportError as e:
+            logger.warning(f"Failed to import frontend analyzers: {e}")
+            self.frontend_optimizer = None
+            self.frontend_backend_mapper = None
+
+    def _is_frontend_file(self, file_path: str, language: str) -> bool:
+        """判断是否为前端文件"""
+        frontend_extensions = ['.html', '.htm', '.js', '.jsx', '.ts', '.tsx', '.vue', '.css', '.scss', '.less']
+        frontend_languages = ['html', 'javascript', 'typescript', 'css']
+
+        # 检查文件扩展名
+        if any(file_path.lower().endswith(ext) for ext in frontend_extensions):
+            return True
+
+        # 检查语言类型
+        if language.lower() in frontend_languages:
+            return True
+
+        return False
+
+    def _optimize_frontend_analysis(self, code: str, file_path: str, language: str):
+        """优化前端代码分析"""
+        if not self.frontend_optimizer:
+            # 如果前端优化器未初始化，返回默认结果
+            from ..analysis.frontend_optimizer import FrontendAnalysisResult
+            return FrontendAnalysisResult(should_skip=False, analysis_type='full')
+
+        return self.frontend_optimizer.analyze_frontend_file(file_path, code)
+
+    def _build_optimized_frontend_prompt(self, frontend_result, code: str, file_path: str, language: str) -> str:
+        """构建优化的前端分析提示词"""
+        if not self.frontend_optimizer:
+            return self._build_security_analysis_prompt(code, file_path, language, "security_audit_chinese")
+
+        base_prompt = self._build_security_analysis_prompt(code, file_path, language, "security_audit_chinese")
+        optimized_prompt = self.frontend_optimizer.generate_optimized_prompt(frontend_result, code)
+
+        if optimized_prompt:
+            return f"{base_prompt}\n\n{optimized_prompt}"
+        else:
+            return base_prompt
 
 

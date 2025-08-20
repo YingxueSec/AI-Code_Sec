@@ -36,10 +36,23 @@ async def audit_project(
     template: str = "security_audit_chinese",
     max_files: int = 0,
     show_filter_stats: bool = True,
-    filter_level: str = "strict"
+    filter_level: str = "strict",
+    enable_cross_file: bool = True,
+    enable_frontend_opt: bool = True,
+    enable_confidence_calc: bool = True,
+    enable_filter: bool = True,
+    min_confidence: float = 0.3,
+    max_confidence: float = 1.0,
+    quick_mode: bool = False,
+    verbose: bool = False,
+    debug: bool = False,
+    include_extensions: list = None,
+    exclude_extensions: list = None,
+    include_paths: list = None,
+    exclude_paths: list = None
 ):
     """
-    简化的项目审计入口
+    完整的项目审计入口，支持所有功能参数控制
 
     Args:
         project_path: 项目路径
@@ -48,6 +61,19 @@ async def audit_project(
         max_files: 最大文件数 (0=无限制)
         show_filter_stats: 显示过滤统计
         filter_level: 过滤级别 (strict/moderate/lenient)
+        enable_cross_file: 启用跨文件关联分析
+        enable_frontend_opt: 启用前端代码优化
+        enable_confidence_calc: 启用置信度计算
+        enable_filter: 启用智能文件过滤
+        min_confidence: 最小置信度阈值
+        max_confidence: 最大置信度阈值
+        quick_mode: 快速扫描模式
+        verbose: 详细输出模式
+        debug: 调试模式
+        include_extensions: 包含的文件扩展名
+        exclude_extensions: 排除的文件扩展名
+        include_paths: 包含的路径模式
+        exclude_paths: 排除的路径模式
     """
     from rich.console import Console
     from .core.config import ConfigManager
