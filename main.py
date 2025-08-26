@@ -9,32 +9,124 @@ import asyncio
 import sys
 import argparse
 import json
+import os
 from pathlib import Path
 from datetime import datetime
+
+# 设置环境变量确保UTF-8编码
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+
+# 设置标准输出编码
+def setup_encoding():
+    """设置编码确保支持Unicode字符"""
+    try:
+        # 设置环境变量
+        os.environ['PYTHONIOENCODING'] = 'utf-8'
+        
+        # 重新配置标准输出和错误输出的编码
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+            
+        # 在Windows上设置控制台编码
+        if sys.platform == 'win32':
+            try:
+                import ctypes
+                # 设置控制台输出为UTF-8
+                ctypes.windll.kernel32.SetConsoleOutputCP(65001)
+                ctypes.windll.kernel32.SetConsoleCP(65001)
+            except:
+                pass
+                
+    except Exception:
+        # 忽略编码设置错误
+        pass
+
+# 在导入前设置编码
+setup_encoding()
 
 # 添加项目路径到Python路径
 sys.path.insert(0, str(Path(__file__).parent))
 
 from ai_code_audit import audit_project
 
+def safe_print(text, **kwargs):
+    """安全输出函数，处理编码问题"""
+    try:
+        # 先尝试直接输出
+        print(text, **kwargs)
+        sys.stdout.flush()
+    except UnicodeEncodeError:
+        try:
+            # 尝试使用gbk编码（Windows默认）
+            encoded_text = text.encode('gbk', errors='replace').decode('gbk')
+            print(encoded_text, **kwargs)
+            sys.stdout.flush()
+        except:
+            try:
+                # 最后备选：使用ascii安全编码
+                safe_text = text.encode('ascii', errors='replace').decode('ascii')
+                print(safe_text, **kwargs)
+                sys.stdout.flush()
+            except:
+                # 最终备选：只输出ASCII字符
+                import re
+                ascii_only = re.sub(r'[^\x00-\x7F]', '?', text)
+                print(ascii_only, **kwargs)
+                sys.stdout.flush()
+
 def print_banner():
     """打印系统横幅"""
-    banner = """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    🛡️  AI代码安全审计系统 v2.0.0                              ║
-║                                                                              ║
-║  🚀 功能特性:                                                                 ║
-║  ✅ 智能文件过滤 - 自动识别和过滤无关文件                                      ║
-║  ✅ 跨文件关联分析 - 自动分析相关文件进行辅助判定                               ║
-║  ✅ 六维度置信度评分 - 多维度智能评估漏洞可信度                                 ║
-║  ✅ 框架感知安全规则 - 支持Spring、MyBatis等主流框架                           ║
-║  ✅ 前端代码优化 - 智能过滤静态内容，提取关键输入点                             ║
-║  ✅ 智能误报过滤 - 误报率从95%+降至<15%                                       ║
-║                                                                              ║
-║  📊 性能提升: 分析效率提升300%+，准确率提升至90%+                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+    # 优先尝试中文版本
+    banner_zh = """
+================================================================================
+                      AI代码安全审计系统 v2.0.0
+================================================================================
+
+  功能特性:
+  * 智能文件过滤 - 自动识别和过滤无关文件
+  * 跨文件关联分析 - 自动分析相关文件进行辅助判定
+  * 六维度置信度评分 - 多维度智能评估漏洞可信度
+  * 框架感知安全规则 - 支持Spring、MyBatis等主流框架
+  * 前端代码优化 - 智能过滤静态内容，提取关键输入点
+  * 智能误报过滤 - 误报率从95%+降至<15%
+
+  性能提升: 分析效率提升300%+，准确率提升至90%+
+
+================================================================================
 """
-    print(banner)
+    
+    # ASCII备选版本
+    banner_ascii = """
+================================================================================
+                      AI Code Security Audit System v2.0.0
+================================================================================
+
+  Features:
+  * Smart File Filtering - Auto identify and filter irrelevant files
+  * Cross-File Analysis - Automatic related file analysis
+  * Six-Dimensional Confidence Scoring - Multi-dimensional vulnerability assessment
+  * Framework-Aware Security Rules - Support Spring, MyBatis frameworks
+  * Frontend Code Optimization - Smart static content filtering
+  * Smart False Positive Filtering - Reduce false positive rate to <15%
+
+  Performance: 300%+ analysis efficiency improvement, 90%+ accuracy
+
+================================================================================
+"""
+    
+    try:
+        # 先尝试中文版本
+        safe_print(banner_zh)
+    except:
+        # 如果中文失败，使用ASCII版本
+        try:
+            print(banner_ascii, flush=True)
+        except:
+            # 最简化版本
+            print("AI Code Security Audit System v2.0.0", flush=True)
+            print("="*50, flush=True)
 
 def create_parser():
     """创建命令行参数解析器"""
@@ -134,15 +226,18 @@ def create_parser():
     
     # 调试选项
     debug_group = parser.add_argument_group('调试选项')
-    debug_group.add_argument('--debug', 
+    debug_group.add_argument('--debug',
                             action='store_true',
                             help='启用调试模式')
-    debug_group.add_argument('--dry-run', 
+    debug_group.add_argument('--dry-run',
                             action='store_true',
                             help='试运行模式，不执行实际分析')
-    debug_group.add_argument('--profile', 
+    debug_group.add_argument('--profile',
                             action='store_true',
                             help='启用性能分析')
+    debug_group.add_argument('--no-timing',
+                            action='store_true',
+                            help='禁用时间统计显示')
     
     return parser
 
@@ -179,16 +274,16 @@ def print_config_summary(args):
     if args.quiet:
         return
     
-    print("📋 审计配置:")
-    print(f"  项目路径: {args.project_path}")
-    print(f"  审计模板: {args.template}")
+    safe_print("[配置] 审计配置:")
+    safe_print(f"  项目路径: {args.project_path}")
+    safe_print(f"  审计模板: {args.template}")
     
     if args.all:
-        print(f"  文件限制: 无限制 (--all)")
+        safe_print(f"  文件限制: 无限制 (--all)")
     else:
-        print(f"  最大文件数: {args.max_files}")
+        safe_print(f"  最大文件数: {args.max_files}")
     
-    print(f"  输出文件: {args.output}")
+    safe_print(f"  输出文件: {args.output}")
     
     # 功能状态
     features = []
@@ -202,7 +297,7 @@ def print_config_summary(args):
         features.append("智能过滤")
     
     if features:
-        print(f"  启用功能: {', '.join(features)}")
+        safe_print(f"  启用功能: {', '.join(features)}")
     
     disabled_features = []
     if args.no_cross_file:
@@ -215,12 +310,12 @@ def print_config_summary(args):
         disabled_features.append("智能过滤")
     
     if disabled_features:
-        print(f"  禁用功能: {', '.join(disabled_features)}")
+        safe_print(f"  禁用功能: {', '.join(disabled_features)}")
     
     if args.quick:
-        print(f"  扫描模式: 快速扫描")
+        safe_print(f"  扫描模式: 快速扫描")
     
-    print()
+    safe_print("")
 
 async def run_audit(args):
     """运行审计"""
@@ -240,7 +335,8 @@ async def run_audit(args):
             'max_confidence': args.max_confidence,
             'quick_mode': args.quick,
             'verbose': args.verbose,
-            'debug': args.debug
+            'debug': args.debug,
+            'show_timing': not args.no_timing
         }
         
         # 添加文件过滤参数
@@ -254,8 +350,8 @@ async def run_audit(args):
             audit_params['exclude_paths'] = args.exclude_paths
         
         if args.dry_run:
-            print("🔍 试运行模式 - 不执行实际分析")
-            print(f"审计参数: {json.dumps(audit_params, indent=2, ensure_ascii=False)}")
+            safe_print("[试运行] 试运行模式 - 不执行实际分析")
+            safe_print(f"审计参数: {json.dumps(audit_params, indent=2, ensure_ascii=False)}")
             return
         
         # 执行审计
@@ -273,25 +369,22 @@ async def run_audit(args):
             stats.sort_stats('cumulative')
             stats.print_stats(20)  # 显示前20个最耗时的函数
         
-        # 生成报告
-        if not args.no_report:
-            from audit_any_project import generate_markdown_report
-            await generate_markdown_report(results, args.project_path, args.output)
+        # 生成报告的逻辑已移至 audit_project 内部，无需在此调用
         
         # 输出结果摘要
         if not args.quiet:
-            print(f"✅ 审计完成！")
-            print(f"📊 结果摘要:")
-            print(f"  - 分析文件数: {results['total_files']}")
-            print(f"  - 发现问题数: {len(results['findings'])}")
-            print(f"  - JSON结果: {args.output}")
+            safe_print(f"[完成] 审计完成！")
+            safe_print(f"[摘要] 结果摘要:")
+            safe_print(f"  - 分析文件数: {results['total_files']}")
+            safe_print(f"  - 发现问题数: {len(results['findings'])}")
+            safe_print(f"  - JSON结果: {args.output}")
             if not args.no_report:
-                print(f"  - Markdown报告: {args.output.replace('.json', '_report.md')}")
+                safe_print(f"  - Markdown报告: {args.output.replace('.json', '_report.md')}")
         
         return results
         
     except Exception as e:
-        print(f"❌ 审计失败: {e}")
+        safe_print(f"[错误] 审计失败: {e}")
         if args.debug:
             import traceback
             traceback.print_exc()
@@ -309,9 +402,9 @@ async def main():
     # 验证参数
     errors = validate_args(args)
     if errors:
-        print("❌ 参数错误:")
+        safe_print("[错误] 参数错误:")
         for error in errors:
-            print(f"  - {error}")
+            safe_print(f"  - {error}")
         sys.exit(1)
     
     # 打印配置摘要

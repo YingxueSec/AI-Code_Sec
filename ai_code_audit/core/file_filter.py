@@ -225,13 +225,13 @@ class FileFilter:
         
         efficiency = (self.stats.filtered_files / self.stats.total_files) * 100
         
-        summary = f"""📊 File Filtering Summary:
+        summary = f"""[统计] File Filtering Summary:
 • Total files scanned: {self.stats.total_files:,}
 • Files included for audit: {self.stats.included_files:,}
 • Files filtered out: {self.stats.filtered_files:,}
 • Filtering efficiency: {efficiency:.1f}%
 
-📋 Filtering breakdown:
+[详情] Filtering breakdown:
 • Filtered by patterns: {self.stats.filtered_by_pattern:,}
 • Filtered by .gitignore: {self.stats.filtered_by_gitignore:,}
 • Filtered by file size: {self.stats.filtered_by_size:,}

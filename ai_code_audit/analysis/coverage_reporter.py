@@ -418,7 +418,7 @@ class CoverageReporter:
 """
         
         for file_path, stats in report.file_stats.items():
-            status_emoji = "✅" if stats.coverage_percentage > 80 else "⚠️" if stats.coverage_percentage > 50 else "❌"
+            status_emoji = "[PASS]" if stats.coverage_percentage > 80 else "[WARN]" if stats.coverage_percentage > 50 else "[FAIL]"
             md_content += f"| {Path(file_path).name} | {stats.total_units} | {stats.analyzed_units} | {stats.coverage_percentage:.1f}% | {status_emoji} |\n"
         
         if report.high_priority_gaps:

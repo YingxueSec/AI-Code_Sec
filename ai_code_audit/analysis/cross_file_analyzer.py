@@ -36,11 +36,13 @@ class CrossFileAnalyzer:
         self.file_cache = {}  # 文件内容缓存
         
     async def analyze_uncertain_finding(
-        self, 
-        finding: Dict[str, Any], 
-        file_path: str, 
+        self,
+        finding: Dict[str, Any],
+        file_path: str,
         code: str,
-        llm_manager
+        llm_manager,
+        analysis_stack: Optional[Set[str]] = None,
+        max_depth: int = 3
     ) -> CrossFileAnalysisResult:
         """
         分析不确定的漏洞发现，通过关联文件进行辅助判定
@@ -54,6 +56,23 @@ class CrossFileAnalyzer:
         Returns:
             CrossFileAnalysisResult: 跨文件分析结果
         """
+        # 初始化分析堆栈，用于防止无限递归
+        if analysis_stack is None:
+            analysis_stack = set()
+
+        # 将当前文件加入堆栈
+        analysis_stack.add(file_path)
+
+        # 检查是否超过最大递归深度
+        if len(analysis_stack) > max_depth:
+            return CrossFileAnalysisResult(
+                original_confidence=finding.get('confidence', 0.5),
+                adjusted_confidence=finding.get('confidence', 0.5),
+                related_files=[],
+                evidence=["Cross-file analysis stopped: maximum recursion depth reached."],
+                recommendation="递归分析深度超限，可能存在循环依赖，请手动审查。"
+            )
+
         original_confidence = finding.get('confidence', 0.5)
         
         # 对需要跨文件分析的问题进行处理
@@ -76,8 +95,12 @@ class CrossFileAnalyzer:
         
         for related_file in related_files:
             try:
+                # 如果关联文件已在分析堆栈中，则跳过，避免循环
+                if related_file.path in analysis_stack:
+                    continue
+
                 analysis = await self._analyze_related_file(
-                    related_file, finding, llm_manager
+                    related_file, finding, llm_manager, analysis_stack, max_depth
                 )
                 evidence.extend(analysis['evidence'])
                 confidence_adjustments.append(analysis['confidence_adjustment'])
@@ -260,10 +283,12 @@ class CrossFileAnalyzer:
         return related_files[:2]
     
     async def _analyze_related_file(
-        self, 
-        related_file: RelatedFile, 
+        self,
+        related_file: RelatedFile,
         finding: Dict[str, Any],
-        llm_manager
+        llm_manager,
+        analysis_stack: Set[str],
+        max_depth: int
     ) -> Dict[str, Any]:
         """分析相关文件"""
         try:
@@ -280,11 +305,16 @@ class CrossFileAnalyzer:
             )
             
             # 使用LLM分析相关文件
+            # 使用带有分析堆栈的新参数进行调用
+            # 注意：这里我们假设 llm_manager.analyze_code 也被更新以接受 analysis_stack
+            # 为了简化，我们暂时只传递堆栈给内部调用，实际场景中可能需要修改llm_manager
+            # 这里我们使用一个更轻量级的提示，而不是完整的安全审计
             result = await llm_manager.analyze_code(
                 code=related_code,
                 file_path=related_file.path,
                 language=self._detect_language(related_file.path),
-                template="security_audit_chinese"
+                template="related_file_analysis",
+                prompt_override=analysis_prompt
             )
             
             if result.get('success'):

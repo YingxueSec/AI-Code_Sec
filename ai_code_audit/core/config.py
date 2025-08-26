@@ -206,7 +206,12 @@ class ConfigManager:
         project_config = Path(__file__).parent.parent.parent / 'config.yaml'
         if project_config.exists():
             return str(project_config)
-        
+
+        # Check config subdirectory
+        config_dir_config = Path(__file__).parent.parent.parent / 'config' / 'config.yaml'
+        if config_dir_config.exists():
+            return str(config_dir_config)
+
         return None
     
     def load_config(self) -> AppConfig:

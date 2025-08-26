@@ -423,7 +423,8 @@ class LLMManager:
         code: str,
         file_path: str,
         language: str,
-        template: str = "security_audit_chinese"
+        template: str = "security_audit_chinese",
+        prompt_override: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         分析代码安全问题
@@ -460,7 +461,7 @@ class LLMManager:
                 security_prompt = self._build_security_analysis_prompt(code, file_path, language, template)
         else:
             # 构建标准安全分析提示词
-            security_prompt = self._build_security_analysis_prompt(code, file_path, language, template)
+            security_prompt = prompt_override or self._build_security_analysis_prompt(code, file_path, language, template)
 
         # 创建LLM请求 - 使用具体模型而不是"auto"
         from .base import LLMModelType, LLMMessage, MessageRole
@@ -646,7 +647,14 @@ class LLMManager:
             json_match = re.search(r'```json\s*(\{.*?\})\s*```', response_content, re.DOTALL)
             if json_match:
                 json_str = json_match.group(1)
-                parsed_response = json.loads(json_str)
+                try:
+                    # 尝试标准的JSON解析
+                    parsed_response = json.loads(json_str)
+                except json.JSONDecodeError:
+                    # 如果失败，尝试修复常见的转义错误并重新解析
+                    import codecs
+                    json_str_repaired = codecs.decode(json_str, 'unicode_escape')
+                    parsed_response = json.loads(json_str_repaired)
 
                 if "findings" in parsed_response:
                     for finding in parsed_response["findings"]:

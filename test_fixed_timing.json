@@ -1,0 +1,978 @@
+{
+  "project_path": "examples\\test_cross_file",
+  "template": "owasp_top_10_2021",
+  "total_files": 4,
+  "findings": [
+    {
+      "file": "main.py",
+      "language": "python",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 15,
+      "description": "在`get_user`函数中，虽然使用了`get_user_data`函数，但根据提示信息，该函数内部调用了`execute_raw_query`，而`execute_raw_query`存在SQL注入风险。用户输入的`user_id`未经任何处理直接拼接到SQL查询语句中，导致潜在的SQL注入攻击。",
+      "code_snippet": "user_data = get_user_data(user_id)",
+      "impact": "攻击者可以通过构造恶意的`user_id`参数执行任意SQL命令，可能导致数据泄露、篡改或删除。",
+      "recommendation": "应使用参数化查询或ORM方式来构建SQL语句，避免直接拼接用户输入。确保`get_user_data`函数内部使用参数化查询。",
+      "issues": [
+        "在`get_user`函数中，虽然使用了`get_user_data`函数，但根据提示信息，该函数内部调用了`execute_raw_query`，而`execute_raw_query`存在SQL注入风险。用户输入的`user_id`未经任何处理直接拼接到SQL查询语句中，导致潜在的SQL注入攻击。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对main的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 您好！我很乐意帮您分析代码中的SQL注入漏洞安全控制机制，但是我没有看到您提供的文件内容。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "main.py",
+      "language": "python",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 25,
+      "description": "在`admin_query`函数中，用户输入的`query`参数直接传递给`execute_raw_query`函数，未进行任何过滤或参数化处理。这使得攻击者可以构造恶意SQL语句，绕过权限控制执行任意数据库操作。",
+      "code_snippet": "result = execute_raw_query(query)",
+      "impact": "攻击者可绕过权限验证，执行任意SQL查询，可能导致敏感数据泄露或数据库被恶意操作。",
+      "recommendation": "应避免直接拼接用户输入到SQL语句中，应使用参数化查询或ORM方式处理SQL语句。",
+      "issues": [
+        "在`admin_query`函数中，用户输入的`query`参数直接传递给`execute_raw_query`函数，未进行任何过滤或参数化处理。这使得攻击者可以构造恶意SQL语句，绕过权限控制执行任意数据库操作。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对main的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 您好！我很乐意帮您分析代码中的SQL注入漏洞安全控制机制，但是我没有看到您提供的文件内容。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "main.py",
+      "language": "python",
+      "type": "路径遍历漏洞",
+      "severity": "high",
+      "line": 37,
+      "description": "在`get_file`函数中，用户输入的`filename`参数直接传递给`read_user_file`函数，未进行路径规范化或白名单校验。攻击者可通过构造如`../../../etc/passwd`等路径绕过文件访问限制，读取系统敏感文件。",
+      "code_snippet": "content = read_user_file(filename)",
+      "impact": "攻击者可读取服务器上的任意文件，可能导致敏感信息泄露，如配置文件、密码等。",
+      "recommendation": "应对用户输入的文件名进行路径规范化处理，使用白名单机制限制可访问的文件路径。",
+      "issues": [
+        "在`get_file`函数中，用户输入的`filename`参数直接传递给`read_user_file`函数，未进行路径规范化或白名单校验。攻击者可通过构造如`../../../etc/passwd`等路径绕过文件访问限制，读取系统敏感文件。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对main的引用"
+          }
+        ],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "main.py",
+      "language": "python",
+      "type": "命令注入漏洞",
+      "severity": "high",
+      "line": 49,
+      "description": "在`upload_file`函数中，`process_upload`函数可能在处理文件时调用了系统命令，且使用了`shell=True`或拼接用户输入到命令行中，存在命令注入风险。攻击者可通过构造恶意文件名执行任意系统命令。",
+      "code_snippet": "result = process_upload(file.filename, file.read())",
+      "impact": "攻击者可执行任意系统命令，可能导致服务器被完全控制，数据被窃取或破坏。",
+      "recommendation": "避免使用`shell=True`，应使用`subprocess.run`的参数化方式，或避免拼接用户输入到命令中。",
+      "issues": [
+        "在`upload_file`函数中，`process_upload`函数可能在处理文件时调用了系统命令，且使用了`shell=True`或拼接用户输入到命令行中，存在命令注入风险。攻击者可通过构造恶意文件名执行任意系统命令。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对main的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我需要看到具体的文件内容才能进行安全审计分析。请您提供需要分析的文件代码，我将重点检查以下命令注入漏洞相关的安全控制机制："
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\auth.py",
+      "language": "python",
+      "type": "弱随机数生成",
+      "severity": "high",
+      "line": 50,
+      "description": "使用了基于时间戳的随机数种子，这使得生成的随机数可预测，容易被攻击者猜测和利用。",
+      "code_snippet": "random.seed(int(time.time()))  # 可预测的种子",
+      "impact": "攻击者可能通过预测会话令牌来伪造合法用户的会话，导致身份冒用和权限提升。",
+      "recommendation": "使用 `secrets` 模块替代 `random` 模块，或使用加密安全的随机数生成器。",
+      "issues": [
+        "使用了基于时间戳的随机数种子，这使得生成的随机数可预测，容易被攻击者猜测和利用。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对auth的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 为了帮助您进行代码安全审计，我需要看到实际的代码文件。不过，我可以先为您介绍一些关于弱随机数生成安全漏洞的常见识别要点："
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\auth.py",
+      "language": "python",
+      "type": "不安全的哈希算法",
+      "severity": "high",
+      "line": 52,
+      "description": "使用了MD5算法生成会话令牌，MD5已被证明存在碰撞漏洞，不适合用于安全敏感场景。",
+      "code_snippet": "return hashlib.md5(f\"{user_id}:{token}\".encode()).hexdigest()",
+      "impact": "攻击者可能通过碰撞攻击伪造有效的会话令牌，绕过身份验证机制。",
+      "recommendation": "改用 SHA-256 或更高强度的哈希算法，或使用专门的密码学安全哈希函数如 bcrypt、scrypt 或 PBKDF2。",
+      "issues": [
+        "使用了MD5算法生成会话令牌，MD5已被证明存在碰撞漏洞，不适合用于安全敏感场景。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对auth的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 为了帮助您进行代码安全审计，我需要看到实际的代码文件。不过，我可以先为您介绍一些常见的不安全哈希算法相关漏洞模式：",
+          "相关文件中发现安全控制: 这样我就能为您提供准确的安全漏洞识别和改进建议。"
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "utils\\auth.py",
+      "language": "python",
+      "type": "时序攻击漏洞",
+      "severity": "high",
+      "line": 57,
+      "description": "在验证会话令牌时，使用了逐字符比较并添加了延迟，这使得攻击者可以通过响应时间推断出令牌的部分内容，从而进行时序攻击。",
+      "code_snippet": "for i in range(len(token)):\n        if token[i] != expected_token[i]:\n            return False\n        time.sleep(0.001)",
+      "impact": "攻击者可以利用时序差异逐步破解会话令牌，绕过身份验证机制。",
+      "recommendation": "使用恒定时间比较函数（如 `hmac.compare_digest`）来防止时序攻击。",
+      "issues": [
+        "在验证会话令牌时，使用了逐字符比较并添加了延迟，这使得攻击者可以通过响应时间推断出令牌的部分内容，从而进行时序攻击。"
+      ],
+      "confidence": 0.99,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 1.0,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high"
+    },
+    {
+      "file": "utils\\auth.py",
+      "language": "python",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "medium",
+      "line": 8,
+      "description": "管理员用户列表被硬编码在源代码中，容易被逆向工程或泄露，增加了系统被攻击的风险。",
+      "code_snippet": "ADMIN_USERS = ['1', 'admin', '0']",
+      "impact": "攻击者一旦获取源码，即可轻易识别出管理员账户，进而尝试暴力破解或权限提升。",
+      "recommendation": "将敏感信息如管理员列表存储在配置文件或环境变量中，并确保其访问权限受到严格控制。",
+      "issues": [
+        "管理员用户列表被硬编码在源代码中，容易被逆向工程或泄露，增加了系统被攻击的风险。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对auth的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: ### 3. **常见安全问题**"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\auth.py",
+      "language": "python",
+      "type": "权限绕过漏洞",
+      "severity": "high",
+      "line": 20,
+      "description": "用户验证逻辑过于简单，仅通过字符串匹配判断是否为管理员，攻击者可通过构造特定用户ID绕过权限检查。",
+      "code_snippet": "if str(user_id) in ADMIN_USERS:\n        return True",
+      "impact": "攻击者可以使用任意存在于 ADMIN_USERS 列表中的用户ID绕过权限验证，获得管理员权限。",
+      "recommendation": "应引入更严格的认证机制，如基于数据库的用户认证、角色权限模型等，避免仅依赖字符串匹配。",
+      "issues": [
+        "用户验证逻辑过于简单，仅通过字符串匹配判断是否为管理员，攻击者可通过构造特定用户ID绕过权限检查。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(2行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对auth的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我需要看到具体的文件内容才能进行权限绕过漏洞的安全审计。请您提供需要分析的文件代码。",
+          "相关文件中发现安全控制: 这样我就能为您进行详细的安全审计，识别潜在的权限绕过漏洞。"
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "utils\\auth.py",
+      "language": "python",
+      "type": "权限提升漏洞",
+      "severity": "high",
+      "line": 34,
+      "description": "权限判断逻辑存在缺陷，任何以 'admin' 开头的用户ID都会被赋予管理员权限，容易导致权限提升。",
+      "code_snippet": "if user_id_str.startswith('admin'):\n        return ['read_files', 'write_files', 'delete_files', 'admin_access']",
+      "impact": "攻击者可以通过构造以 'admin' 开头的用户ID，获得管理员权限，从而访问敏感资源。",
+      "recommendation": "应通过数据库或认证系统进行严格的权限验证，而不是依赖字符串前缀匹配。",
+      "issues": [
+        "权限判断逻辑存在缺陷，任何以 'admin' 开头的用户ID都会被赋予管理员权限，容易导致权限提升。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(2行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对auth的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我注意到您提到了要分析一个文件是否包含权限提升漏洞相关的安全控制机制，但是您没有提供具体的文件内容。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\auth.py",
+      "language": "python",
+      "type": "权限绕过漏洞",
+      "severity": "high",
+      "line": 44,
+      "description": "管理员检查逻辑使用了包含判断而非精确匹配，且数字范围判断存在边界问题，容易被绕过。",
+      "code_snippet": "if 'admin' in user_id_str.lower():\n            return True\n        try:\n            uid_num = int(user_id_str)\n            if uid_num <= 10:\n                return True",
+      "impact": "攻击者可通过构造包含 'admin' 字符串的用户ID或使用小于等于10的数字绕过管理员权限检查。",
+      "recommendation": "应使用精确匹配和更严格的权限验证逻辑，避免使用模糊匹配或范围判断。",
+      "issues": [
+        "管理员检查逻辑使用了包含判断而非精确匹配，且数字范围判断存在边界问题，容易被绕过。"
+      ],
+      "confidence": 0.89,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 1.0,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.99,
+        "adjusted_confidence": 0.89,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对auth的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我需要看到具体的文件内容才能进行权限绕过漏洞的安全审计。请您提供需要分析的文件代码。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\database.py",
+      "language": "python",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 12,
+      "description": "在execute_raw_query函数中，直接将用户输入的query参数拼接到SQL语句中执行，未使用参数化查询，存在严重的SQL注入风险。",
+      "code_snippet": "cursor.execute(query)",
+      "impact": "攻击者可构造恶意SQL语句，绕过身份验证、读取或篡改数据库内容，甚至执行系统命令。",
+      "recommendation": "应使用参数化查询或预编译语句来防止SQL注入。例如：cursor.execute(\"SELECT * FROM users WHERE id = ?\", (user_id,))",
+      "issues": [
+        "在execute_raw_query函数中，直接将用户输入的query参数拼接到SQL语句中执行，未使用参数化查询，存在严重的SQL注入风险。"
+      ],
+      "confidence": 0.6479999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.6479999999999999,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对database的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我注意到您提到了要分析一个文件是否包含SQL注入漏洞相关的安全控制机制，但是您没有提供具体的文件内容。",
+          "相关文件中发现安全控制: 为了帮助您进行SQL注入漏洞的安全审计，我需要看到实际的代码文件。不过，我可以先为您介绍SQL注入漏洞的常见模式和防护机制：",
+          "相关文件中发现安全控制: 请分享您想要分析的代码文件，我将为您详细检查其中的SQL注入风险和安全控制机制。"
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.65)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "utils\\database.py",
+      "language": "python",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 23,
+      "description": "在get_user_data函数中，通过f-string拼接用户ID构造SQL查询语句，未使用参数化查询，存在SQL注入风险。",
+      "code_snippet": "sql = f\"SELECT * FROM users WHERE id = {user_id}\"",
+      "impact": "攻击者可传入恶意ID值，构造恶意SQL语句，可能导致数据泄露或非法操作。",
+      "recommendation": "应使用参数化查询，如cursor.execute(\"SELECT * FROM users WHERE id = ?\", (user_id,))",
+      "issues": [
+        "在get_user_data函数中，通过f-string拼接用户ID构造SQL查询语句，未使用参数化查询，存在SQL注入风险。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对database的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 您好！我很乐意帮您分析代码中的SQL注入漏洞安全控制机制，但是我没有看到您提供的文件内容。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\database.py",
+      "language": "python",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 34,
+      "description": "在search_users函数中，通过f-string拼接搜索关键词构造SQL语句，未使用参数化查询，存在SQL注入风险。",
+      "code_snippet": "sql = f\"SELECT * FROM users WHERE name LIKE '%{search_term}%' OR email LIKE '%{search_term}%'\")",
+      "impact": "攻击者可构造恶意搜索词，注入SQL语句，获取敏感数据或执行非法操作。",
+      "recommendation": "应使用参数化查询，如cursor.execute(\"SELECT * FROM users WHERE name LIKE ? OR email LIKE ?\", (f'%{search_term}%', f'%{search_term}%'))",
+      "issues": [
+        "在search_users函数中，通过f-string拼接搜索关键词构造SQL语句，未使用参数化查询，存在SQL注入风险。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对database的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 您好！我很乐意帮您分析代码中的SQL注入漏洞安全控制机制，但是我没有看到您提供的文件内容。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\database.py",
+      "language": "python",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 45,
+      "description": "在update_user_status函数中，通过f-string拼接状态值和用户ID构造UPDATE语句，未使用参数化查询，存在SQL注入风险。",
+      "code_snippet": "sql = f\"UPDATE users SET status = '{status}' WHERE id = {user_id}\"",
+      "impact": "攻击者可构造恶意状态值或用户ID，注入SQL语句，修改用户状态或执行非法操作。",
+      "recommendation": "应使用参数化查询，如cursor.execute(\"UPDATE users SET status = ? WHERE id = ?\", (status, user_id))",
+      "issues": [
+        "在update_user_status函数中，通过f-string拼接状态值和用户ID构造UPDATE语句，未使用参数化查询，存在SQL注入风险。"
+      ],
+      "confidence": 0.6479999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.6479999999999999,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对database的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我注意到您提到了要分析一个文件是否包含SQL注入漏洞相关的安全控制机制，但是您没有提供具体的文件内容。",
+          "相关文件中发现安全控制: 为了帮助您进行SQL注入安全审计，我需要看到实际的代码文件。不过，我可以先为您介绍SQL注入漏洞的常见模式和防护机制：",
+          "相关文件中发现安全控制: 请分享您要分析的文件内容，我将为您详细分析其中的SQL注入风险和安全控制机制。"
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.65)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "utils\\file_handler.py",
+      "language": "python",
+      "type": "路径遍历漏洞",
+      "severity": "high",
+      "line": 10,
+      "description": "在read_user_file函数中，直接将用户输入的filename拼接到基础路径后，未对文件名进行任何验证或清理，攻击者可以利用路径遍历攻击访问系统敏感文件。",
+      "code_snippet": "file_path = base_path + filename",
+      "impact": "攻击者可能读取服务器上任意文件，如/etc/passwd、配置文件等，造成信息泄露。",
+      "recommendation": "使用os.path.abspath()和os.path.realpath()结合白名单验证机制，确保文件路径在指定目录内。",
+      "issues": [
+        "在read_user_file函数中，直接将用户输入的filename拼接到基础路径后，未对文件名进行任何验证或清理，攻击者可以利用路径遍历攻击访问系统敏感文件。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对file_handler的引用"
+          }
+        ],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\file_handler.py",
+      "language": "python",
+      "type": "命令注入漏洞",
+      "severity": "high",
+      "line": 26,
+      "description": "在process_upload函数中，使用shell=True执行subprocess.run时，直接拼接用户输入的filename到命令字符串中，存在命令注入风险。",
+      "code_snippet": "cmd = f\"file {upload_path} && echo 'File processed: {filename}'\"",
+      "impact": "攻击者可构造恶意文件名，执行任意系统命令，如删除系统文件、上传后门等。",
+      "recommendation": "避免使用shell=True，改用列表形式传递命令参数，或对用户输入进行严格转义和校验。",
+      "issues": [
+        "在process_upload函数中，使用shell=True执行subprocess.run时，直接拼接用户输入的filename到命令字符串中，存在命令注入风险。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对file_handler的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我注意到您提到了要分析文件中的命令注入漏洞安全控制机制，但是您没有提供具体的文件内容。",
+          "相关文件中发现安全控制: ## 我将重点检查的命令注入相关安全控制："
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "utils\\file_handler.py",
+      "language": "python",
+      "type": "路径遍历漏洞",
+      "severity": "high",
+      "line": 37,
+      "description": "在delete_user_file函数中，直接拼接用户输入的filename到文件路径中，未做路径合法性校验，存在路径遍历风险。",
+      "code_snippet": "file_path = user_dir + filename",
+      "impact": "攻击者可能删除任意目录下的文件，包括系统关键文件。",
+      "recommendation": "使用os.path.abspath()和os.path.realpath()结合白名单机制，确保路径在合法范围内。",
+      "issues": [
+        "在delete_user_file函数中，直接拼接用户输入的filename到文件路径中，未做路径合法性校验，存在路径遍历风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对file_handler的引用"
+          }
+        ],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\file_handler.py",
+      "language": "python",
+      "type": "命令注入漏洞",
+      "severity": "high",
+      "line": 43,
+      "description": "在delete_user_file函数中，使用shell=True执行rm命令时，直接拼接用户输入的file_path，存在命令注入风险。",
+      "code_snippet": "cmd = f\"rm -f {file_path}\"",
+      "impact": "攻击者可构造恶意路径，执行任意系统命令，可能导致数据丢失或系统被控制。",
+      "recommendation": "避免shell=True，使用os.remove()等安全API替代shell命令执行。",
+      "issues": [
+        "在delete_user_file函数中，使用shell=True执行rm命令时，直接拼接用户输入的file_path，存在命令注入风险。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对file_handler的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我注意到您提到了要分析一个文件是否包含命令注入漏洞相关的安全控制机制，但是您没有提供具体的文件内容。",
+          "相关文件中发现安全控制: 为了帮助您进行代码安全审计，我需要看到实际的代码文件。不过，我可以先为您介绍命令注入漏洞的常见特征和防护机制："
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "utils\\file_handler.py",
+      "language": "python",
+      "type": "命令注入漏洞",
+      "severity": "high",
+      "line": 52,
+      "description": "在backup_user_data函数中，使用shell=True执行tar命令时，直接拼接用户输入的backup_path和user_dir，存在命令注入风险。",
+      "code_snippet": "cmd = f\"tar -czf {backup_path} {user_dir}\"",
+      "impact": "攻击者可构造恶意路径，执行任意系统命令，可能导致数据泄露或系统被控制。",
+      "recommendation": "避免shell=True，使用参数化方式调用tar命令，或对用户输入进行严格校验。",
+      "issues": [
+        "在backup_user_data函数中，使用shell=True执行tar命令时，直接拼接用户输入的backup_path和user_dir，存在命令注入风险。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对file_handler的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 您好！我很乐意帮您分析代码中的命令注入漏洞安全控制机制。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "utils\\file_handler.py",
+      "language": "python",
+      "type": "命令注入漏洞",
+      "severity": "high",
+      "line": 63,
+      "description": "在get_file_info函数中，使用shell=True执行file和ls命令时，直接拼接用户输入的filename，存在命令注入风险。",
+      "code_snippet": "cmd = f\"file {filename} && ls -la {filename}\"",
+      "impact": "攻击者可构造恶意文件名，执行任意系统命令，可能导致信息泄露或系统被控制。",
+      "recommendation": "避免shell=True，使用安全API替代shell命令执行，或对用户输入进行严格转义。",
+      "issues": [
+        "在get_file_info函数中，使用shell=True执行file和ls命令时，直接拼接用户输入的filename，存在命令注入风险。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对file_handler的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我注意到您提到了要分析一个文件是否包含命令注入漏洞相关的安全控制机制，但是您没有提供具体的文件内容。",
+          "相关文件中发现安全控制: 为了帮助您进行代码安全审计，我需要看到实际的代码文件。不过，我可以先为您介绍命令注入漏洞的常见特征和防护机制："
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "utils\\file_handler.py",
+      "language": "python",
+      "type": "Zip Slip漏洞",
+      "severity": "high",
+      "line": 74,
+      "description": "在extract_archive函数中，直接使用zipfile.ZipFile.extractall()解压文件，未对解压路径进行验证，攻击者可构造恶意zip文件，将文件解压到任意目录。",
+      "code_snippet": "zip_ref.extractall(extract_to)",
+      "impact": "攻击者可将恶意文件写入系统任意位置，可能导致代码执行、权限提升等严重后果。",
+      "recommendation": "在解压前验证文件路径，确保其不包含路径遍历字符，或使用安全的解压库如zipfile.Path。",
+      "issues": [
+        "在extract_archive函数中，直接使用zipfile.ZipFile.extractall()解压文件，未对解压路径进行验证，攻击者可构造恶意zip文件，将文件解压到任意目录。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_cross_file\\main.py",
+            "relationship": "caller",
+            "reason": "文件中包含对file_handler的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我注意到您提到了要分析文件是否包含Zip Slip漏洞相关的安全控制机制，但是您没有提供具体的文件内容。",
+          "相关文件中发现安全控制: 为了帮助您进行Zip Slip漏洞的安全审计，我需要看到实际的代码文件。不过，我可以先为您介绍Zip Slip漏洞的关键特征和检测方法："
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    }
+  ],
+  "summary": {
+    "total_findings": 22,
+    "files_analyzed": 4,
+    "completion_status": "success"
+  },
+  "timestamp": "2025-08-26 19:28:23.442182",
+  "timing_stats": {
+    "配置加载": 0.0058672428131103516,
+    "项目结构分析": 0.0031049251556396484,
+    "文件过滤": 0.014283180236816406,
+    "AI模型初始化": 0.0033020973205566406,
+    "代码分析总时间": 314.5132837295532,
+    "LLM调用总时间": 314.50176095962524,
+    "平均每文件分析时间": 78.62773245573044,
+    "平均LLM调用时间": 78.62544023990631,
+    "LLM调用次数": 4,
+    "摘要生成": 9.5367431640625e-06
+  }
+}

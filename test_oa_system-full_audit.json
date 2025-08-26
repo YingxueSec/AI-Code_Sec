@@ -1,0 +1,583 @@
+{
+  "project_path": "examples/test_oa-system",
+  "template": "owasp_top_10_2021",
+  "total_files": 20,
+  "findings": [
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+      "language": "java",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "high",
+      "line": 15,
+      "description": "发件人邮箱密码被硬编码在源代码中，存在严重的安全风险。攻击者一旦获取代码，即可获得邮箱凭证，进而可能利用该邮箱发送垃圾邮件或进行其他恶意操作。",
+      "code_snippet": "public static String myEmailPassword = \"ntogbdqtuieybdje\";",
+      "impact": "攻击者可直接获取邮箱凭证，用于发送垃圾邮件、钓鱼攻击或进一步渗透系统。",
+      "recommendation": "应将敏感信息如邮箱密码存储在配置文件或环境变量中，并通过安全的方式进行加载。建议使用Spring Vault、AWS Secrets Manager等工具管理密钥。",
+      "issues": [
+        "发件人邮箱密码被硬编码在源代码中，存在严重的安全风险。攻击者一旦获取代码，即可获得邮箱凭证，进而可能利用该邮箱发送垃圾邮件或进行其他恶意操作。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+            "relationship": "caller",
+            "reason": "文件中包含对PushoutMail的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 不过，我可以先为您介绍一些常见的硬编码密钥和敏感信息的安全问题识别要点：",
+          "相关文件中发现安全控制: ## 常见的安全问题识别点："
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+      "language": "java",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "high",
+      "line": 14,
+      "description": "发件人邮箱地址被硬编码在源代码中，虽然不直接构成安全漏洞，但与密码一起暴露，增加了攻击面。",
+      "code_snippet": "public static String myEmailAccount = \"962239776@qq.com\";",
+      "impact": "攻击者可利用该邮箱地址进行社会工程学攻击或尝试暴力破解。",
+      "recommendation": "将邮箱地址也移至外部配置文件或环境变量中，避免硬编码。",
+      "issues": [
+        "发件人邮箱地址被硬编码在源代码中，虽然不直接构成安全漏洞，但与密码一起暴露，增加了攻击面。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+            "relationship": "caller",
+            "reason": "文件中包含对PushoutMail的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 作为代码安全审计专家，我需要看到实际的代码文件才能进行准确的安全分析。不过，我可以为您介绍如何识别和检测硬编码密钥及敏感信息的安全问题："
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+      "language": "java",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "high",
+      "line": 17,
+      "description": "SMTP服务器地址被硬编码在源代码中，虽然不是敏感信息，但若被攻击者获取，可用于伪造邮件或进行钓鱼攻击。",
+      "code_snippet": "public static String myEmailSMTPHost = \"smtp.qq.com\";",
+      "impact": "攻击者可利用该SMTP地址伪造邮件，进行钓鱼或垃圾邮件攻击。",
+      "recommendation": "将SMTP地址配置为外部参数，避免硬编码。",
+      "issues": [
+        "SMTP服务器地址被硬编码在源代码中，虽然不是敏感信息，但若被攻击者获取，可用于伪造邮件或进行钓鱼攻击。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+            "relationship": "caller",
+            "reason": "文件中包含对PushoutMail的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 为了帮助您进行代码安全审计，我需要看到实际的代码文件内容。不过，我可以先为您介绍硬编码密钥和敏感信息相关的常见安全问题和检测方法："
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+      "language": "java",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "high",
+      "line": 20,
+      "description": "收件人邮箱地址被硬编码在源代码中，虽然不是敏感信息，但暴露了邮件接收方，可能被用于社会工程学攻击。",
+      "code_snippet": "public static String receiveMailAccount = \"1533047354@qq.com\";",
+      "impact": "攻击者可利用该邮箱地址进行针对性攻击或钓鱼。",
+      "recommendation": "将收件人邮箱地址配置为外部参数，避免硬编码。",
+      "issues": [
+        "收件人邮箱地址被硬编码在源代码中，虽然不是敏感信息，但暴露了邮件接收方，可能被用于社会工程学攻击。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+            "relationship": "caller",
+            "reason": "文件中包含对PushoutMail的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: ## 我将重点关注以下安全问题："
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+      "language": "java",
+      "type": "弱加密算法",
+      "severity": "low",
+      "line": 1,
+      "description": "虽然代码本身未使用加密算法，但该类用于发送邮件，若后续扩展涉及数据加密，需注意避免使用弱加密算法。当前代码未发现直接使用弱加密算法。",
+      "code_snippet": "无",
+      "impact": "当前代码未使用加密算法，无直接影响。",
+      "recommendation": "如后续扩展涉及加密逻辑，请确保使用强加密算法（如AES-256）。",
+      "issues": [
+        "虽然代码本身未使用加密算法，但该类用于发送邮件，若后续扩展涉及数据加密，需注意避免使用弱加密算法。当前代码未发现直接使用弱加密算法。"
+      ],
+      "confidence": 0.6329999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.85
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "弱加密算法历史误报率30%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9329999999999999,
+        "adjusted_confidence": 0.6329999999999999,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+            "relationship": "caller",
+            "reason": "文件中包含对PushoutMail的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 为了帮助您进行代码安全审计，我需要看到实际的代码文件。不过，我可以先为您介绍一些常见的弱加密算法安全问题和检测要点：",
+          "相关文件中发现安全控制: ### 3. **常见的安全问题**：",
+          "相关文件中发现安全控制: 3. 识别潜在的安全漏洞"
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.93 → 0.63)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+      "language": "java",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 35,
+      "description": "在代码中通过`rpdao.findbyparentxianall`和`rpdao.findbyparentsxian`方法调用DAO层查询数据库，但未提供任何参数化查询或SQL注入防护机制。虽然DAO层可能使用了JPA/Hibernate等框架，但未明确检查其是否使用了参数化查询，存在潜在的SQL注入风险。",
+      "code_snippet": "List<Rolemenu> oneMenuAll=rpdao.findbyparentxianall(0L, user.getRole().getRoleId(), true,false);\nList<Rolemenu> twoMenuAll=rpdao.findbyparentsxian(0L, user.getRole().getRoleId(), true,false);",
+      "impact": "攻击者可能通过构造恶意输入，绕过权限控制，访问未授权的菜单或功能。",
+      "recommendation": "确保DAO层使用参数化查询或ORM框架提供的安全查询方式，避免直接拼接SQL字符串。",
+      "issues": [
+        "在代码中通过`rpdao.findbyparentxianall`和`rpdao.findbyparentsxian`方法调用DAO层查询数据库，但未提供任何参数化查询或SQL注入防护机制。虽然DAO层可能使用了JPA/Hibernate等框架，但未明确检查其是否使用了参数化查询，存在潜在的SQL注入风险。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(2行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\Interceptorconfig.java",
+            "relationship": "caller",
+            "reason": "文件中包含对recordInterceptor的引用"
+          },
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+            "relationship": "caller",
+            "reason": "文件中包含对recordInterceptor的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 您好！我很乐意帮您分析代码中的SQL注入漏洞安全控制机制，但是我没有看到您提供的文件内容。",
+          "相关文件中发现安全控制: 您好！我很乐意帮您分析代码中的SQL注入漏洞安全控制机制，但是我没有看到您提供的文件内容。"
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+      "language": "java",
+      "type": "路径遍历漏洞",
+      "severity": "medium",
+      "line": 44,
+      "description": "代码中使用`request.getServletPath()`获取访问路径，但未对路径进行任何校验或过滤，若该路径可被用户控制，可能引发路径遍历问题。",
+      "code_snippet": "uLog.setUrl(request.getServletPath());",
+      "impact": "攻击者可能通过构造恶意路径，访问系统中不应被访问的资源。",
+      "recommendation": "对路径进行白名单校验或路径规范化处理，防止路径遍历攻击。",
+      "issues": [
+        "代码中使用`request.getServletPath()`获取访问路径，但未对路径进行任何校验或过滤，若该路径可被用户控制，可能引发路径遍历问题。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\Interceptorconfig.java",
+            "relationship": "caller",
+            "reason": "文件中包含对recordInterceptor的引用"
+          },
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+            "relationship": "caller",
+            "reason": "文件中包含对recordInterceptor的引用"
+          },
+          {
+            "path": "examples\\test_oa-system\\src\\main\\resources\\application.properties",
+            "relationship": "config",
+            "reason": "项目配置文件，可能包含安全设置"
+          }
+        ],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+      "language": "java",
+      "type": "硬编码敏感信息",
+      "severity": "low",
+      "line": 19,
+      "description": "代码中存在`Tool tool;`字段，但未明确其是否包含硬编码的敏感信息（如密钥、密码等），若该类中包含硬编码信息，则存在安全隐患。",
+      "code_snippet": "Tool tool;",
+      "impact": "若`Tool`类中包含硬编码的密钥或密码，攻击者可能通过反编译获取敏感信息。",
+      "recommendation": "检查`Tool`类中是否包含硬编码的敏感信息，若存在应移除并使用配置文件或环境变量管理。",
+      "issues": [
+        "代码中存在`Tool tool;`字段，但未明确其是否包含硬编码的敏感信息（如密钥、密码等），若该类中包含硬编码信息，则存在安全隐患。"
+      ],
+      "confidence": 0.6479999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.6479999999999999,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\Interceptorconfig.java",
+            "relationship": "caller",
+            "reason": "文件中包含对recordInterceptor的引用"
+          },
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+            "relationship": "caller",
+            "reason": "文件中包含对recordInterceptor的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 我需要看到具体的文件内容才能进行安全审计分析。请您提供需要分析的文件内容，我将重点检查以下硬编码敏感信息相关的安全漏洞：",
+          "相关文件中发现安全控制: 我需要看到具体的文件内容才能进行安全审计分析。请您提供需要分析的文件内容，我将重点检查以下硬编码敏感信息相关的安全漏洞：",
+          "相关文件中发现安全控制: - 发现的安全问题"
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.65)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+      "language": "java",
+      "type": "不安全的随机数生成",
+      "severity": "low",
+      "line": 64,
+      "description": "代码中使用`new Date()`生成日志时间戳，未使用安全的随机数生成器，但该处不构成直接安全风险。",
+      "code_snippet": "uLog.setLogTime(new Date());",
+      "impact": "该处不构成直接安全问题，但若用于生成安全令牌等场景，可能存在问题。",
+      "recommendation": "若用于安全相关场景，应使用`SecureRandom`生成随机数。",
+      "issues": [
+        "代码中使用`new Date()`生成日志时间戳，未使用安全的随机数生成器，但该处不构成直接安全风险。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\Interceptorconfig.java",
+            "relationship": "caller",
+            "reason": "文件中包含对recordInterceptor的引用"
+          },
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+            "relationship": "caller",
+            "reason": "文件中包含对recordInterceptor的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 如果您能提供具体的代码文件内容，我将为您进行详细的审计分析，识别其中的安全漏洞并提供修复建议。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+      "language": "java",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 250,
+      "description": "在`outaddresspaging`方法中，通过`am.allDirector(userId, alph, outtype, baseKey)`调用MyBatis的Mapper方法，传入的参数`alph`、`outtype`、`baseKey`未使用参数化查询，而是直接拼接到SQL语句中，存在SQL注入风险。",
+      "code_snippet": "List<Map<String, Object>> directors=am.allDirector(userId, alph, outtype, baseKey);",
+      "impact": "攻击者可以通过构造恶意输入，注入任意SQL语句，可能导致数据泄露、篡改或删除。",
+      "recommendation": "确保在MyBatis的SQL映射文件中使用`#{}`参数绑定，而不是`${}`字符串替换，避免直接拼接SQL。",
+      "issues": [
+        "在`outaddresspaging`方法中，通过`am.allDirector(userId, alph, outtype, baseKey)`调用MyBatis的Mapper方法，传入的参数`alph`、`outtype`、`baseKey`未使用参数化查询，而是直接拼接到SQL语句中，存在SQL注入风险。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+            "relationship": "caller",
+            "reason": "文件中包含对AddrController的引用"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 您好！我很乐意帮您分析代码中的SQL注入漏洞安全控制机制，但是我没有看到您提供的文件内容。",
+          "相关文件中发现安全控制: - 发现的安全问题"
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+      "language": "java",
+      "type": "路径遍历漏洞",
+      "severity": "medium",
+      "line": 270,
+      "description": "在`inaddresspaging`方法中，`baseKey`参数未经过严格校验，直接用于查询用户信息，若该参数被恶意构造，可能引发路径遍历或信息泄露。",
+      "code_snippet": "userspage=uDao.findUsers(\"%\"+baseKey+\"%\",baseKey+\"%\", pa);",
+      "impact": "攻击者可能通过构造特殊参数，绕过权限控制或获取未授权的数据。",
+      "recommendation": "对`baseKey`参数进行输入校验和过滤，确保其符合预期格式，避免非法字符或路径遍历攻击。",
+      "issues": [
+        "在`inaddresspaging`方法中，`baseKey`参数未经过严格校验，直接用于查询用户信息，若该参数被恶意构造，可能引发路径遍历或信息泄露。"
+      ],
+      "confidence": 0.748,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.748,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+            "relationship": "caller",
+            "reason": "文件中包含对AddrController的引用"
+          },
+          {
+            "path": "examples\\test_oa-system\\src\\main\\resources\\application.properties",
+            "relationship": "config",
+            "reason": "项目配置文件，可能包含安全设置"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 不过，我可以为您提供一个完整的安全审计框架，用于分析文件上传和路径处理相关的安全漏洞：",
+          "相关文件中发现安全控制: 如果您能提供具体的代码文件内容，我将能够进行详细的逐行安全审计，识别其中的安全漏洞并提供针对性的改进建议。"
+        ],
+        "recommendation": "跨文件分析降低了问题的置信度 (0.95 → 0.75)，可能存在安全控制"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+      "language": "java",
+      "type": "路径遍历漏洞",
+      "severity": "medium",
+      "line": 277,
+      "description": "在`inaddresspaging`方法中，`baseKey`和`alph`参数未经过严格校验，可能被用于构造恶意路径，导致路径遍历风险。",
+      "code_snippet": "userspage=uDao.findSelectUsers(\"%\"+baseKey+\"%\", alph+\"%\",pa);",
+      "impact": "攻击者可能通过构造特殊参数，绕过权限控制或获取未授权的数据。",
+      "recommendation": "对`baseKey`和`alph`参数进行输入校验和过滤，确保其符合预期格式，避免非法字符或路径遍历攻击。",
+      "issues": [
+        "在`inaddresspaging`方法中，`baseKey`和`alph`参数未经过严格校验，可能被用于构造恶意路径，导致路径遍历风险。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+            "relationship": "caller",
+            "reason": "文件中包含对AddrController的引用"
+          },
+          {
+            "path": "examples\\test_oa-system\\src\\main\\resources\\application.properties",
+            "relationship": "config",
+            "reason": "项目配置文件，可能包含安全设置"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 这样我就能为您提供针对性的安全漏洞识别和改进建议。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    }
+  ],
+  "summary": {
+    "total_findings": 12,
+    "files_analyzed": 20,
+    "completion_status": "success"
+  },
+  "timestamp": "2025-08-22 16:19:05.750744"
+}

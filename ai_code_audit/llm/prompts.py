@@ -39,27 +39,27 @@ class PromptTemplate:
 
 class PromptManager:
     """Manages prompts for different code analysis tasks."""
-    
+
     def __init__(self):
         """Initialize prompt manager with predefined templates."""
         self.templates: Dict[str, PromptTemplate] = {}
         self._load_default_templates()
         self._load_advanced_templates()
         self._load_chinese_templates()
-    
+
     def _load_default_templates(self):
         """Load default prompt templates."""
-        
+
         # Security Audit Template
         self.templates["security_audit"] = PromptTemplate(
             name="security_audit",
             type=PromptType.SECURITY_AUDIT,
             system_prompt="""You are an elite cybersecurity expert with 20+ years of experience in penetration testing, vulnerability research, and secure code review. Your mission is to identify ALL security vulnerabilities with the mindset of a skilled attacker.
 
-🎯 CRITICAL ANALYSIS MINDSET:
+[关键] CRITICAL ANALYSIS MINDSET:
 Think like a hacker trying to break this system. Question every assumption, examine every input, and consider every edge case.
 
-🔍 ENHANCED DETECTION FOCUS:
+[DETECTION FOCUS] ENHANCED DETECTION FOCUS:
 
 1. **Business Logic Vulnerabilities** (Often missed by automated tools):
    - Authentication bypasses through logic flaws
@@ -97,7 +97,7 @@ For each function, ask:
 - "What's the worst-case scenario?"
 - "Are there edge cases or boundary conditions?"
 
-🎯 SEVERITY ASSESSMENT:
+[SEVERITY] SEVERITY ASSESSMENT:
 - Critical: Remote code execution, data breach, system compromise, authentication bypass
 - High: Privilege escalation, sensitive data exposure, significant business impact
 - Medium: Information disclosure, denial of service, configuration issues
@@ -105,7 +105,7 @@ For each function, ask:
 
 🔥 ZERO TOLERANCE POLICY:
 Miss NO vulnerabilities. Every security flaw matters. Be thorough, paranoid, and comprehensive.""",
-            user_prompt_template="""🔍 DEEP SECURITY ANALYSIS REQUIRED
+            user_prompt_template="""[ANALYSIS] DEEP SECURITY ANALYSIS REQUIRED
 
 **Target Code:**
 - File: {file_path}
@@ -119,7 +119,7 @@ Miss NO vulnerabilities. Every security flaw matters. Be thorough, paranoid, and
 {code_content}
 ```
 
-🎯 **ANALYSIS REQUIREMENTS:**
+[REQUIREMENTS] **ANALYSIS REQUIREMENTS:**
 
 1. **Line-by-Line Security Review**: Examine every single line for potential vulnerabilities
 2. **Attack Vector Analysis**: For each vulnerability, provide specific exploitation scenarios
@@ -127,11 +127,11 @@ Miss NO vulnerabilities. Every security flaw matters. Be thorough, paranoid, and
 4. **Cross-Reference Analysis**: Consider how this code interacts with other components
 5. **Edge Case Evaluation**: Test boundary conditions and unusual input scenarios
 
-📊 **REQUIRED OUTPUT FORMAT:**
+[OUTPUT] **REQUIRED OUTPUT FORMAT:**
 
 For EVERY vulnerability found, provide:
 
-**🚨 VULNERABILITY #X: [Name]**
+**[VULNERABILITY] VULNERABILITY #X: [Name]**
 - **OWASP Category**: [A01-A10:2021]
 - **CWE ID**: [CWE-XXX]
 - **Severity**: [Critical/High/Medium/Low]
@@ -165,7 +165,7 @@ For EVERY vulnerability found, provide:
             type=PromptType.SECURITY_AUDIT,
             system_prompt="""You are an elite penetration tester and security researcher with expertise in advanced attack techniques and vulnerability chaining.
 
-🎯 MISSION: Identify ALL security vulnerabilities and attack chains with zero tolerance for missed issues.
+[MISSION] MISSION: Identify ALL security vulnerabilities and attack chains with zero tolerance for missed issues.
 
 🔗 CROSS-FILE ANALYSIS EXPERTISE:
 Your unique strength is identifying vulnerabilities that span multiple files and components:
@@ -202,7 +202,7 @@ Your unique strength is identifying vulnerabilities that span multiple files and
 - Authentication bypass through parameter manipulation
 - Multi-step authentication weaknesses
 
-🔍 DEEP ANALYSIS METHODOLOGY:
+[ANALYSIS] DEEP ANALYSIS METHODOLOGY:
 1. **Threat Modeling**: What would an attacker target first?
 2. **Attack Surface Mapping**: Identify all input vectors and trust boundaries
 3. **Vulnerability Chaining**: How can multiple small issues become critical?
@@ -228,40 +228,40 @@ Your unique strength is identifying vulnerabilities that span multiple files and
 {code_content}
 ```
 
-🎯 **PENETRATION TESTING MINDSET REQUIRED**
+[PENETRATION] **PENETRATION TESTING MINDSET REQUIRED**
 
 Analyze this code as if you're conducting a penetration test. Your goal is to find EVERY possible way to compromise this system.
 
 📋 **MANDATORY ANALYSIS CHECKLIST:**
 
-✅ **Input Vector Analysis**:
+[OK] **Input Vector Analysis**:
 - [ ] Every parameter, header, cookie, file upload
 - [ ] Hidden inputs and indirect data sources
 - [ ] Environment variables and configuration inputs
 - [ ] Database inputs and external API responses
 
-✅ **Injection Point Assessment**:
+[OK] **Injection Point Assessment**:
 - [ ] SQL queries (SELECT, INSERT, UPDATE, DELETE, stored procedures)
 - [ ] System commands and subprocess calls
 - [ ] File path operations and includes
 - [ ] Template rendering and expression evaluation
 - [ ] LDAP, XPath, and NoSQL queries
 
-✅ **Authentication & Authorization Deep Dive**:
+[OK] **Authentication & Authorization Deep Dive**:
 - [ ] Login logic and session management
 - [ ] Password handling and storage
 - [ ] Permission checks and role validation
 - [ ] Multi-factor authentication implementation
 - [ ] API key and token management
 
-✅ **Business Logic Security**:
+[OK] **Business Logic Security**:
 - [ ] Workflow manipulation possibilities
 - [ ] State tampering and race conditions
 - [ ] Privilege escalation paths
 - [ ] Data validation and sanitization
 - [ ] Error handling and information disclosure
 
-✅ **Cryptographic Implementation**:
+[OK] **Cryptographic Implementation**:
 - [ ] Hardcoded secrets and credentials
 - [ ] Encryption algorithm choices
 - [ ] Key generation and management
@@ -292,7 +292,7 @@ For each vulnerability discovered:
   ```
 - **Additional Recommendations**: [Security best practices]
 
-🎯 **ATTACK SCENARIOS TO CONSIDER:**
+[SCENARIOS] **ATTACK SCENARIOS TO CONSIDER:**
 - Remote code execution through injection
 - Authentication bypass and privilege escalation
 - Sensitive data extraction and exfiltration
@@ -312,7 +312,7 @@ For each vulnerability discovered:
             type=PromptType.SECURITY_AUDIT,
             system_prompt="""You are an ELITE cybersecurity expert with 25+ years of experience in APT analysis, zero-day research, and enterprise security.
 
-🎯 MISSION: ACHIEVE 95%+ VULNERABILITY DETECTION RATE
+[MISSION] MISSION: ACHIEVE 95%+ VULNERABILITY DETECTION RATE
 
 🧠 ULTRA-ADVANCED ANALYSIS METHODOLOGY:
 
@@ -443,7 +443,7 @@ Please provide a detailed code review covering:
             temperature=0.2,
             description="Detailed code quality review"
         )
-        
+
         # Vulnerability Scan Template
         self.templates["vulnerability_scan"] = PromptTemplate(
             name="vulnerability_scan",
@@ -490,29 +490,29 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
             temperature=0.05,
             description="Targeted vulnerability scanning"
         )
-        
+
         logger.info(f"Loaded {len(self.templates)} prompt templates")
-    
+
     def get_template(self, template_name: str) -> Optional[PromptTemplate]:
         """Get a prompt template by name."""
         return self.templates.get(template_name)
-    
+
     def list_templates(self) -> List[str]:
         """Get list of available template names."""
         return list(self.templates.keys())
-    
+
     def get_templates_by_type(self, prompt_type: PromptType) -> List[PromptTemplate]:
         """Get all templates of a specific type."""
         return [template for template in self.templates.values() if template.type == prompt_type]
-    
+
     def generate_prompt(self, template_name: str, variables: Dict[str, Any]) -> Optional[Dict[str, str]]:
         """
         Generate a prompt from template with provided variables.
-        
+
         Args:
             template_name: Name of the template to use
             variables: Dictionary of variables to substitute
-            
+
         Returns:
             Dictionary with 'system' and 'user' prompts, or None if template not found
         """
@@ -520,17 +520,17 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
         if not template:
             logger.error(f"Template '{template_name}' not found")
             return None
-        
+
         # Check if all required variables are provided
         missing_vars = set(template.variables) - set(variables.keys())
         if missing_vars:
             logger.error(f"Missing required variables for template '{template_name}': {missing_vars}")
             return None
-        
+
         try:
             # Generate user prompt by substituting variables
             user_prompt = template.user_prompt_template.format(**variables)
-            
+
             return {
                 'system': template.system_prompt,
                 'user': user_prompt,
@@ -541,19 +541,19 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
                     'temperature': template.temperature,
                 }
             }
-            
+
         except KeyError as e:
             logger.error(f"Variable substitution failed for template '{template_name}': {e}")
             return None
         except Exception as e:
             logger.error(f"Error generating prompt from template '{template_name}': {e}")
             return None
-    
+
     def add_template(self, template: PromptTemplate) -> None:
         """Add a new prompt template."""
         self.templates[template.name] = template
         logger.info(f"Added template: {template.name}")
-    
+
     def remove_template(self, template_name: str) -> bool:
         """Remove a prompt template."""
         if template_name in self.templates:
@@ -561,52 +561,52 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
             logger.info(f"Removed template: {template_name}")
             return True
         return False
-    
+
     def validate_template(self, template: PromptTemplate) -> List[str]:
         """
         Validate a prompt template.
-        
+
         Returns:
             List of validation errors (empty if valid)
         """
         errors = []
-        
+
         if not template.name:
             errors.append("Template name is required")
-        
+
         if not template.system_prompt:
             errors.append("System prompt is required")
-        
+
         if not template.user_prompt_template:
             errors.append("User prompt template is required")
-        
+
         # Check if all variables in template are listed in variables list
         import re
         template_vars = set(re.findall(r'\{(\w+)\}', template.user_prompt_template))
         declared_vars = set(template.variables)
-        
+
         undeclared_vars = template_vars - declared_vars
         if undeclared_vars:
             errors.append(f"Undeclared variables in template: {undeclared_vars}")
-        
+
         unused_vars = declared_vars - template_vars
         if unused_vars:
             errors.append(f"Declared but unused variables: {unused_vars}")
-        
+
         if template.max_context_length <= 0:
             errors.append("Max context length must be positive")
-        
+
         if not 0.0 <= template.temperature <= 2.0:
             errors.append("Temperature must be between 0.0 and 2.0")
-        
+
         return errors
-    
+
     def get_template_info(self, template_name: str) -> Optional[Dict[str, Any]]:
         """Get detailed information about a template."""
         template = self.get_template(template_name)
         if not template:
             return None
-        
+
         return {
             'name': template.name,
             'type': template.type.value,
@@ -617,11 +617,11 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
             'system_prompt_length': len(template.system_prompt),
             'user_template_length': len(template.user_prompt_template),
         }
-    
+
     def export_templates(self) -> Dict[str, Dict[str, Any]]:
         """Export all templates to a dictionary format."""
         exported = {}
-        
+
         for name, template in self.templates.items():
             exported[name] = {
                 'name': template.name,
@@ -633,18 +633,18 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
                 'temperature': template.temperature,
                 'description': template.description,
             }
-        
+
         return exported
-    
+
     def import_templates(self, templates_data: Dict[str, Dict[str, Any]]) -> List[str]:
         """
         Import templates from dictionary format.
-        
+
         Returns:
             List of successfully imported template names
         """
         imported = []
-        
+
         for name, data in templates_data.items():
             try:
                 template = PromptTemplate(
@@ -657,19 +657,19 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
                     temperature=data.get('temperature', 0.1),
                     description=data.get('description'),
                 )
-                
+
                 # Validate template
                 errors = self.validate_template(template)
                 if errors:
                     logger.error(f"Template '{name}' validation failed: {errors}")
                     continue
-                
+
                 self.add_template(template)
                 imported.append(name)
-                
+
             except Exception as e:
                 logger.error(f"Failed to import template '{name}': {e}")
-        
+
         return imported
 
     def _load_advanced_templates(self):
@@ -712,7 +712,7 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
 🎯 关键分析思维：
 像黑客一样思考，试图攻破这个系统。质疑每一个假设，检查每一个输入，考虑每一个边界情况。
 
-🔍 增强检测重点：
+[DETECTION] 增强检测重点：
 
 1. **业务逻辑漏洞**（自动化工具经常遗漏）：
    - 通过逻辑缺陷绕过身份验证
@@ -758,7 +758,7 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
 
 🔥 零容忍政策：
 不要遗漏任何漏洞。每个安全缺陷都很重要。要彻底、偏执和全面。""",
-            user_prompt_template="""🔍 深度安全分析要求
+            user_prompt_template="""[ANALYSIS] 深度安全分析要求
 
 **目标代码：**
 - 文件：{file_path}
@@ -780,7 +780,7 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
 4. **交叉引用分析**：考虑此代码如何与其他组件交互
 5. **边界情况评估**：测试边界条件和异常输入场景
 
-📊 **必需输出格式（中文）：**
+[OUTPUT] **必需输出格式（中文）：**
 
 对于发现的每个漏洞，提供：
 
@@ -811,3 +811,36 @@ Focus on finding exploitable vulnerabilities. Provide specific findings with:
             temperature=0.1,
             description="中文版全面安全审计代码文件"
         )
+
+        # Chinese Related File Analysis Template
+        self.templates["related_file_analysis"] = PromptTemplate(
+            name="related_file_analysis",
+            type=PromptType.TARGETED_ANALYSIS,
+            system_prompt="""You are a highly specialized code analysis assistant. Your sole task is to analyze a given code snippet to answer a specific, targeted question about its security controls or relationship to a potential vulnerability.
+
+- Be concise and direct.
+- Focus ONLY on the question asked.
+- Do not perform a full security audit.
+- Base your answer strictly on the provided code.
+- If the code contains relevant security controls, describe them briefly.
+- If it lacks relevant controls, state that clearly.""",
+            user_prompt_template="""**Targeted Analysis Request**
+
+**Context:** We are investigating a potential vulnerability in another file and need to check this related code for specific security controls.
+
+**Code to Analyze:**
+```
+{code}
+```
+
+**Analysis Question:**
+{prompt_override}
+
+**Your concise analysis:**""",
+            variables=["code", "prompt_override"],
+            max_context_length=8192,
+            temperature=0.0,
+            description="A lightweight prompt for targeted analysis of related files."
+        )
+
+

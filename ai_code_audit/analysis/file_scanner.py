@@ -101,7 +101,7 @@ class FileScanner:
 
             # 详细的过滤统计日志
             total_filtered = filtered_by_ignore + filtered_by_size + filtered_by_type
-            logger.info(f"📊 File Filtering Summary:")
+            logger.info(f"[STATS] File Filtering Summary:")
             logger.info(f"  • Total files scanned: {total_scanned}")
             logger.info(f"  • Files included for audit: {len(files)}")
             logger.info(f"  • Files filtered out: {total_filtered}")
