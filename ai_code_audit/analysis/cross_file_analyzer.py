@@ -7,9 +7,13 @@
 
 import re
 import ast
+import asyncio
+import logging
 from pathlib import Path
 from typing import Dict, List, Set, Optional, Tuple, Any
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class RelatedFile:
@@ -34,6 +38,9 @@ class CrossFileAnalyzer:
     def __init__(self, project_path: str):
         self.project_path = Path(project_path)
         self.file_cache = {}  # 文件内容缓存
+        self.analysis_cache = {}  # 新增：分析结果缓存
+        self.search_cache = {}    # 新增：搜索结果缓存
+        self.semaphore = asyncio.Semaphore(2)  # 限制跨文件分析并发数
         
     async def analyze_uncertain_finding(
         self,
@@ -46,85 +53,117 @@ class CrossFileAnalyzer:
     ) -> CrossFileAnalysisResult:
         """
         分析不确定的漏洞发现，通过关联文件进行辅助判定
-        
+
         Args:
             finding: 漏洞发现信息
             file_path: 当前文件路径
             code: 当前文件代码
             llm_manager: LLM管理器，用于分析关联文件
-            
+
         Returns:
             CrossFileAnalysisResult: 跨文件分析结果
         """
-        # 初始化分析堆栈，用于防止无限递归
-        if analysis_stack is None:
-            analysis_stack = set()
+        # 生成缓存键
+        cache_key = self._generate_cache_key(finding, file_path)
 
-        # 将当前文件加入堆栈
-        analysis_stack.add(file_path)
+        # 检查缓存
+        if cache_key in self.analysis_cache:
+            logger.info(f"Using cached cross-file analysis result for {file_path}")
+            return self.analysis_cache[cache_key]
 
-        # 检查是否超过最大递归深度
-        if len(analysis_stack) > max_depth:
-            return CrossFileAnalysisResult(
-                original_confidence=finding.get('confidence', 0.5),
-                adjusted_confidence=finding.get('confidence', 0.5),
-                related_files=[],
-                evidence=["Cross-file analysis stopped: maximum recursion depth reached."],
-                recommendation="递归分析深度超限，可能存在循环依赖，请手动审查。"
+        # 使用信号量控制并发
+        async with self.semaphore:
+            # 执行分析
+            result = await self._perform_analysis(finding, file_path, code, llm_manager, analysis_stack, max_depth)
+
+            # 缓存结果
+            self.analysis_cache[cache_key] = result
+
+            return result
+
+    async def _perform_analysis(
+        self,
+        finding: Dict[str, Any],
+        file_path: str,
+        code: str,
+        llm_manager,
+        analysis_stack: Optional[Set[str]] = None,
+        max_depth: int = 3
+    ) -> CrossFileAnalysisResult:
+        """执行实际的跨文件分析"""
+        from ..utils.recursion_monitor import RecursionGuard, AnalysisType
+
+        # 使用递归保护
+        async with RecursionGuard(file_path, AnalysisType.CROSS_FILE):
+            # 初始化分析堆栈，用于防止无限递归
+            if analysis_stack is None:
+                analysis_stack = set()
+
+            # 将当前文件加入堆栈
+            analysis_stack.add(file_path)
+
+            # 检查是否超过最大递归深度
+            if len(analysis_stack) > max_depth:
+                return CrossFileAnalysisResult(
+                    original_confidence=finding.get('confidence', 0.5),
+                    adjusted_confidence=finding.get('confidence', 0.5),
+                    related_files=[],
+                    evidence=["Cross-file analysis stopped: maximum recursion depth reached."],
+                    recommendation="递归分析深度超限，可能存在循环依赖，请手动审查。"
+                )
+
+            original_confidence = finding.get('confidence', 0.5)
+
+            # 对需要跨文件分析的问题进行处理
+            # 调整阈值，允许更多问题进行跨文件分析
+            if original_confidence > 0.99:
+                return CrossFileAnalysisResult(
+                    original_confidence=original_confidence,
+                    adjusted_confidence=original_confidence,
+                    related_files=[],
+                    evidence=[],
+                    recommendation="极高置信度问题，无需跨文件分析"
+                )
+
+            # 1. 识别相关文件
+            related_files = await self._find_related_files(finding, file_path, code)
+
+            # 2. 分析相关文件
+            evidence = []
+            confidence_adjustments = []
+
+            for related_file in related_files:
+                try:
+                    # 如果关联文件已在分析堆栈中，则跳过，避免循环
+                    if related_file.path in analysis_stack:
+                        continue
+
+                    analysis = await self._analyze_related_file(
+                        related_file, finding, llm_manager, analysis_stack, max_depth
+                    )
+                    evidence.extend(analysis['evidence'])
+                    confidence_adjustments.append(analysis['confidence_adjustment'])
+
+                except Exception as e:
+                    print(f"Warning: Failed to analyze related file {related_file.path}: {e}")
+
+            # 3. 计算调整后的置信度
+            adjusted_confidence = self._calculate_adjusted_confidence(
+                original_confidence, confidence_adjustments
             )
 
-        original_confidence = finding.get('confidence', 0.5)
-        
-        # 对需要跨文件分析的问题进行处理
-        # 调整阈值，允许更多问题进行跨文件分析
-        if original_confidence > 0.99:
+            # 4. 生成建议
+            recommendation = self._generate_recommendation(
+                finding, evidence, original_confidence, adjusted_confidence
+            )
+
             return CrossFileAnalysisResult(
                 original_confidence=original_confidence,
-                adjusted_confidence=original_confidence,
-                related_files=[],
-                evidence=[],
-                recommendation="极高置信度问题，无需跨文件分析"
+                adjusted_confidence=adjusted_confidence,
+                related_files=related_files,
+                evidence=evidence,
+                recommendation=recommendation
             )
-        
-        # 1. 识别相关文件
-        related_files = await self._find_related_files(finding, file_path, code)
-        
-        # 2. 分析相关文件
-        evidence = []
-        confidence_adjustments = []
-        
-        for related_file in related_files:
-            try:
-                # 如果关联文件已在分析堆栈中，则跳过，避免循环
-                if related_file.path in analysis_stack:
-                    continue
-
-                analysis = await self._analyze_related_file(
-                    related_file, finding, llm_manager, analysis_stack, max_depth
-                )
-                evidence.extend(analysis['evidence'])
-                confidence_adjustments.append(analysis['confidence_adjustment'])
-                
-            except Exception as e:
-                print(f"Warning: Failed to analyze related file {related_file.path}: {e}")
-        
-        # 3. 计算调整后的置信度
-        adjusted_confidence = self._calculate_adjusted_confidence(
-            original_confidence, confidence_adjustments
-        )
-        
-        # 4. 生成建议
-        recommendation = self._generate_recommendation(
-            finding, evidence, original_confidence, adjusted_confidence
-        )
-        
-        return CrossFileAnalysisResult(
-            original_confidence=original_confidence,
-            adjusted_confidence=adjusted_confidence,
-            related_files=related_files,
-            evidence=evidence,
-            recommendation=recommendation
-        )
     
     async def _find_related_files(
         self, 
@@ -305,16 +344,14 @@ class CrossFileAnalyzer:
             )
             
             # 使用LLM分析相关文件
-            # 使用带有分析堆栈的新参数进行调用
-            # 注意：这里我们假设 llm_manager.analyze_code 也被更新以接受 analysis_stack
-            # 为了简化，我们暂时只传递堆栈给内部调用，实际场景中可能需要修改llm_manager
-            # 这里我们使用一个更轻量级的提示，而不是完整的安全审计
+            # 🔥 关键修改：使用 analysis_context 参数防止递归
             result = await llm_manager.analyze_code(
                 code=related_code,
                 file_path=related_file.path,
                 language=self._detect_language(related_file.path),
                 template="related_file_analysis",
-                prompt_override=analysis_prompt
+                prompt_override=analysis_prompt,
+                analysis_context="related_file"  # 🔥 新增：标记为关联文件分析
             )
             
             if result.get('success'):
@@ -416,20 +453,65 @@ class CrossFileAnalyzer:
             return "跨文件分析未显著改变置信度，建议进一步人工审查"
     
     def _search_files_containing(self, pattern: str) -> List[str]:
-        """搜索包含指定模式的文件"""
+        """优化的文件搜索，避免全项目扫描"""
         found_files = []
-        
-        for file_path in self.project_path.rglob('*'):
-            if file_path.is_file() and file_path.suffix in ['.php', '.java', '.py', '.js', '.html']:
+
+        # 检查搜索缓存
+        if hasattr(self, 'search_cache') and pattern in self.search_cache:
+            logger.info(f"Using cached search result for pattern '{pattern}'")
+            return self.search_cache[pattern]
+
+        # 1. 限制搜索范围和文件类型
+        search_extensions = {'.php', '.java', '.py', '.js', '.html', '.jsp', '.xml'}
+        max_search_files = 100  # 限制搜索文件数量
+        max_results = 5  # 限制结果数量
+
+        searched_count = 0
+
+        try:
+            for file_path in self.project_path.rglob('*'):
+                if searched_count >= max_search_files:
+                    break
+
+                if not file_path.is_file() or file_path.suffix not in search_extensions:
+                    continue
+
+                # 跳过大文件
                 try:
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                        if pattern in content:
-                            found_files.append(str(file_path))
+                    if file_path.stat().st_size > 500 * 1024:  # 500KB限制
+                        continue
                 except:
                     continue
-        
-        return found_files[:10]  # 限制结果数量
+
+                searched_count += 1
+
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        # 只读取前10KB内容进行搜索
+                        content = f.read(10240)
+                        if pattern in content:
+                            found_files.append(str(file_path))
+                            if len(found_files) >= max_results:
+                                break
+                except:
+                    continue
+
+        except Exception as e:
+            logger.warning(f"File search failed: {e}")
+
+        # 缓存搜索结果
+        if not hasattr(self, 'search_cache'):
+            self.search_cache = {}
+        self.search_cache[pattern] = found_files
+
+        logger.info(f"Searched {searched_count} files, found {len(found_files)} matches for pattern '{pattern}'")
+        return found_files
+
+    def _generate_cache_key(self, finding: Dict[str, Any], file_path: str) -> str:
+        """生成缓存键"""
+        import hashlib
+        key_data = f"{file_path}:{finding.get('type', '')}:{finding.get('line', 0)}"
+        return hashlib.md5(key_data.encode()).hexdigest()
     
     def _resolve_file_path(self, current_file: str, relative_path: str) -> List[Path]:
         """解析相对文件路径"""

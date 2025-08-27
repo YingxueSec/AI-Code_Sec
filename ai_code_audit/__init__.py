@@ -534,77 +534,84 @@ def generate_markdown_report(results, output_file):
 
 
 async def _analyze_file_async(file_info, index, total_files, template_manager, template, llm_manager, show_timing, console, project_path):
-    """异步分析单个文件"""
+    """异步分析单个文件，带递归检测"""
     import time
     from pathlib import Path
     from .utils.cache import get_cache
+    from .utils.recursion_monitor import RecursionGuard, AnalysisType
 
     file_start_time = time.time()
     file_name = Path(file_info.path).name if hasattr(file_info.path, 'name') else Path(str(file_info.path)).name
+    file_path = str(file_info.path)
     console.print(f"分析 {index+1}/{total_files}: {file_name}")
 
     try:
-        # 读取文件内容
-        file_path = str(file_info.path)
-        if not Path(file_path).is_absolute():
-            full_path = Path(project_path) / file_path
-        else:
-            full_path = Path(file_path)
-
-        with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
-            content = f.read()
-
-        # 获取模板提示词
-        template_obj = template_manager.get_template(template)
-        if template_obj:
-            # 检查缓存
-            cache = get_cache()
-            cached_response = cache.get(content, template, file_info.language)
-
-            if cached_response:
-                console.print(f"  [CACHE] 使用缓存结果")
-                response = cached_response.get('response', {})
-                llm_duration = 0.1  # 缓存访问时间很短
+        # 使用递归保护
+        async with RecursionGuard(file_path, AnalysisType.MAIN_ANALYSIS):
+            # 读取文件内容
+            file_path_str = str(file_info.path)
+            if not Path(file_path_str).is_absolute():
+                full_path = Path(project_path) / file_path_str
             else:
-                # 调用LLM分析
-                console.print(f"  [AI] 正在分析 {file_info.language} 代码...")
-                llm_start_time = time.time()
-                response = await llm_manager.analyze_code(
-                    code=content,
-                    file_path=str(file_info.path),
-                    language=file_info.language,
-                    template=template
-                )
-                llm_duration = time.time() - llm_start_time
+                full_path = Path(file_path_str)
 
-                # 保存到缓存
-                if response and response.get('success'):
-                    cache.set(content, template, file_info.language, response)
+            with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
 
-            if show_timing:
-                console.print(f"  ⏱️  LLM分析耗时: {llm_duration:.2f}秒")
-            console.print(f"  [INFO] LLM响应: success={response.get('success', False)}")
+            # 获取模板提示词
+            template_obj = template_manager.get_template(template)
+            if template_obj:
+                # 检查缓存
+                cache = get_cache()
+                cached_response = cache.get(content, template, file_info.language)
 
-            findings = []
-            if response and response.get('success') and response.get('findings'):
-                findings_count = len(response['findings'])
-                console.print(f"  [ALERT] 发现 {findings_count} 个安全问题")
+                if cached_response:
+                    console.print(f"  [CACHE] 使用缓存结果")
+                    response = cached_response.get('response', {})
+                    llm_duration = 0.1  # 缓存访问时间很短
+                else:
+                    # 调用LLM分析
+                    console.print(f"  [AI] 正在分析 {file_info.language} 代码...")
+                    llm_start_time = time.time()
+                    response = await llm_manager.analyze_code(
+                        code=content,
+                        file_path=str(file_info.path),
+                        language=file_info.language,
+                        template=template
+                    )
+                    llm_duration = time.time() - llm_start_time
 
-                for finding in response['findings']:
-                    finding['file'] = str(file_info.path)
-                    finding['language'] = file_info.language
-                    findings.append(finding)
-            elif response and not response.get('success'):
-                console.print(f"  [WARNING] LLM分析失败: {response.get('error', 'Unknown error')}")
-            else:
-                console.print(f"  [SUCCESS] 未发现安全问题")
+                    # 保存到缓存
+                    if response and response.get('success'):
+                        cache.set(content, template, file_info.language, response)
 
-            file_duration = time.time() - file_start_time
-            if show_timing:
-                console.print(f"  ⏱️  文件分析总耗时: {file_duration:.2f}秒")
+                if show_timing:
+                    console.print(f"  ⏱️  LLM分析耗时: {llm_duration:.2f}秒")
+                console.print(f"  [INFO] LLM响应: success={response.get('success', False)}")
 
-            return file_duration, llm_duration, findings
+                findings = []
+                if response and response.get('success') and response.get('findings'):
+                    findings_count = len(response['findings'])
+                    console.print(f"  [ALERT] 发现 {findings_count} 个安全问题")
 
+                    for finding in response['findings']:
+                        finding['file'] = str(file_info.path)
+                        finding['language'] = file_info.language
+                        findings.append(finding)
+                elif response and not response.get('success'):
+                    console.print(f"  [WARNING] LLM分析失败: {response.get('error', 'Unknown error')}")
+                else:
+                    console.print(f"  [SUCCESS] 未发现安全问题")
+
+                file_duration = time.time() - file_start_time
+                if show_timing:
+                    console.print(f"  ⏱️  文件分析总耗时: {file_duration:.2f}秒")
+
+                return file_duration, llm_duration, findings
+
+    except RecursionError as e:
+        console.print(f"  [RECURSION] 检测到递归调用: {e}")
+        return 0, 0, []
     except Exception as e:
         console.print(f"[WARNING] 跳过文件 {file_info.path}: {e}")
         return 0, 0, []

@@ -108,6 +108,11 @@ class KimiProvider(BaseLLMProvider):
 
                 return parsed_response
 
+            except RecursionError:
+                # 递归错误不重试
+                logger.error("RecursionError detected, stopping all retries")
+                raise LLMError("Maximum recursion depth exceeded")
+
             except LLMRateLimitError:
                 if attempt < self.max_retries - 1:
                     # 限流错误使用更长的延迟
@@ -119,6 +124,12 @@ class KimiProvider(BaseLLMProvider):
                     raise
 
             except LLMAPIError as e:
+                # 检查错误类型，某些错误不应该重试
+                error_str = str(e).lower()
+                if "maximum recursion depth exceeded" in error_str or "recursion" in error_str:
+                    logger.error("Recursion depth error in API call, stopping retries")
+                    raise LLMError("Recursion depth exceeded in API call")
+
                 if attempt < self.max_retries - 1 and e.is_retryable:
                     # 根据错误类型调整延迟策略
                     if e.status_code == 502:

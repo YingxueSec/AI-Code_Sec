@@ -83,9 +83,14 @@ class QwenProvider(BaseLLMProvider):
             try:
                 response = await self._send_request(api_request)
                 response_time = time.time() - start_time
-                
+
                 return self._parse_response(response, request.model.value, response_time)
-                
+
+            except RecursionError:
+                # 递归错误不重试
+                logger.error("RecursionError detected, stopping all retries")
+                raise LLMError("Maximum recursion depth exceeded")
+
             except LLMRateLimitError:
                 if attempt < self.max_retries - 1:
                     delay = self.retry_delay * (2 ** attempt)  # Exponential backoff
@@ -94,8 +99,14 @@ class QwenProvider(BaseLLMProvider):
                     continue
                 else:
                     raise
-            
+
             except LLMAPIError as e:
+                # 检查错误类型，某些错误不应该重试
+                error_str = str(e).lower()
+                if "maximum recursion depth exceeded" in error_str or "recursion" in error_str:
+                    logger.error("Recursion depth error in API call, stopping retries")
+                    raise LLMError("Recursion depth exceeded in API call")
+
                 if attempt < self.max_retries - 1 and e.is_retryable:
                     delay = self.retry_delay * (2 ** attempt)
                     logger.warning(f"API error, retrying in {delay}s: {e}")

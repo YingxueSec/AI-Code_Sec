@@ -1,0 +1,1233 @@
+{
+  "project_path": ".\\examples\\test_oa-system\\",
+  "template": "owasp_top_10_2021",
+  "total_files": 30,
+  "findings": [
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+      "language": "java",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "high",
+      "line": 15,
+      "description": "在代码中硬编码了邮箱账号和密码，这会带来严重的安全风险。一旦代码泄露，攻击者可以使用这些凭证发送垃圾邮件或进行其他恶意操作。",
+      "code_snippet": "public static String myEmailAccount = \"962239776@qq.com\";\n    public static String myEmailPassword = \"ntogbdqtuieybdje\";",
+      "impact": "攻击者可利用硬编码的凭证访问邮件账户，发送钓鱼邮件、垃圾邮件或用于进一步攻击。",
+      "recommendation": "应将敏感信息如邮箱账号和密码存储在配置文件或环境变量中，并通过安全的方式读取，避免直接写入源码。",
+      "issues": [
+        "在代码中硬编码了邮箱账号和密码，这会带来严重的安全风险。一旦代码泄露，攻击者可以使用这些凭证发送垃圾邮件或进行其他恶意操作。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(2行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\PushoutMail.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "medium",
+      "line": 1,
+      "description": "该类为工具类，没有权限控制逻辑，且main方法中直接使用硬编码的邮箱账号和密码进行邮件发送，若该类被不当调用，可能导致未授权的邮件发送行为。",
+      "code_snippet": "public class PushoutMail {\n\n\tpublic PushoutMail() {}\n\n\t// 发件人的 邮箱 和 密码（替换为自己的邮箱和密码）\n\tpublic static String myEmailAccount = \"962239776@qq.com\";\n    public static String myEmailPassword = \"ntogbdqtuieybdje\";",
+      "impact": "如果该类被外部调用或在不安全的上下文中执行，可能会导致未经授权的邮件发送，造成信息泄露或滥用。",
+      "recommendation": "应确保此类在受控环境中使用，并添加适当的权限控制机制，例如通过参数传入认证信息而非硬编码，或限制其调用者权限。",
+      "issues": [
+        "该类为工具类，没有权限控制逻辑，且main方法中直接使用硬编码的邮箱账号和密码进行邮件发送，若该类被不当调用，可能导致未授权的邮件发送行为。"
+      ],
+      "confidence": 0.9374999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9374999999999999,
+        "adjusted_confidence": 0.9374999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 29,
+      "description": "在preHandle方法中，当用户已登录时，代码通过遍历菜单权限判断用户是否有访问当前URL的权限。然而，逻辑存在缺陷：当遍历到匹配的菜单项时，直接调用forward跳转到'notlimit'页面，但未正确阻止后续请求处理。这可能导致权限绕过，攻击者可能绕过权限检查访问受限资源。",
+      "code_snippet": "if(!rolemenu.getMenuUrl().equals(url)){\n    return true;\n}else{\n    request.getRequestDispatcher(zhuan).forward(request, response);\n}",
+      "impact": "攻击者可能绕过权限控制，访问未授权的资源，导致数据泄露或系统功能被滥用。",
+      "recommendation": "应确保在权限验证失败时，直接返回false或抛出异常，而不是通过forward跳转。应使用标准的权限拒绝机制，如返回403状态码或重定向到错误页面。",
+      "issues": [
+        "在preHandle方法中，当用户已登录时，代码通过遍历菜单权限判断用户是否有访问当前URL的权限。然而，逻辑存在缺陷：当遍历到匹配的菜单项时，直接调用forward跳转到'notlimit'页面，但未正确阻止后续请求处理。这可能导致权限绕过，攻击者可能绕过权限检查访问受限资源。"
+      ],
+      "confidence": 0.9525,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 1.0,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9525,
+        "adjusted_confidence": 0.9525,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+      "language": "java",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "medium",
+      "line": 17,
+      "description": "在类中声明了Tool tool字段，但未初始化。Tool类可能包含硬编码的敏感信息，如数据库密码、API密钥等。虽然当前代码未直接使用tool，但若Tool类中存在硬编码的敏感信息，将构成安全风险。",
+      "code_snippet": "Tool tool;",
+      "impact": "如果Tool类中包含硬编码的敏感信息，攻击者可能通过反编译或源码泄露获取这些信息，导致系统被攻击。",
+      "recommendation": "避免在代码中硬编码敏感信息，应使用配置文件或环境变量管理敏感信息。同时，应确保Tool类的初始化和使用是安全的。",
+      "issues": [
+        "在类中声明了Tool tool字段，但未初始化。Tool类可能包含硬编码的敏感信息，如数据库密码、API密钥等。虽然当前代码未直接使用tool，但若Tool类中存在硬编码的敏感信息，将构成安全风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\common\\Interceptor\\recordInterceptor.java",
+      "language": "java",
+      "type": "路径遍历漏洞",
+      "severity": "low",
+      "line": 45,
+      "description": "在afterCompletion方法中，代码通过request.getServletPath()获取请求路径，并与菜单URL进行比较。如果该路径未经过严格验证或过滤，可能存在路径遍历风险。但当前代码中未直接使用该路径进行文件操作，因此风险较低。",
+      "code_snippet": "uLog.setUrl(request.getServletPath());",
+      "impact": "虽然当前代码未直接使用该路径进行文件操作，但若后续逻辑中使用该路径进行文件读取或写入，可能引发路径遍历漏洞。",
+      "recommendation": "确保所有用户输入的路径在使用前经过严格的验证和过滤，避免路径遍历攻击。",
+      "issues": [
+        "在afterCompletion方法中，代码通过request.getServletPath()获取请求路径，并与菜单URL进行比较。如果该路径未经过严格验证或过滤，可能存在路径遍历风险。但当前代码中未直接使用该路径进行文件操作，因此风险较低。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\resources\\application.properties",
+            "relationship": "config",
+            "reason": "项目配置文件，可能包含安全设置"
+          }
+        ],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\IndexController.java",
+      "language": "java",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 136,
+      "description": "在`test3`方法中，通过`nm.findMyNotice(2L)`调用DAO层方法时，传入了硬编码的参数2L。虽然该参数是硬编码的，但若后续逻辑中该参数来自用户输入且未经过适当验证或转义，则可能引发SQL注入风险。",
+      "code_snippet": "List<Map<String, Object>> list = nm.findMyNotice(2L);",
+      "impact": "攻击者可能通过构造恶意输入来操纵SQL查询，从而获取未授权的数据或执行非预期操作。",
+      "recommendation": "确保所有传入DAO层的参数都经过严格的输入验证和转义处理，避免直接使用用户可控的数据作为SQL查询的一部分。",
+      "issues": [
+        "在`test3`方法中，通过`nm.findMyNotice(2L)`调用DAO层方法时，传入了硬编码的参数2L。虽然该参数是硬编码的，但若后续逻辑中该参数来自用户输入且未经过适当验证或转义，则可能引发SQL注入风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\IndexController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 100,
+      "description": "在`menucha`方法中，虽然检查了session中的userId，但未对用户权限进行进一步验证。如果该方法允许任意用户访问并执行敏感操作，可能导致权限绕过。",
+      "code_snippet": "Long userId = Long.parseLong(session.getAttribute(\"userId\") + \"\");",
+      "impact": "未经授权的用户可能访问到本应受限的功能或数据，造成信息泄露或系统滥用。",
+      "recommendation": "在关键业务逻辑前增加权限校验机制，确保只有具备相应权限的用户才能访问特定功能。",
+      "issues": [
+        "在`menucha`方法中，虽然检查了session中的userId，但未对用户权限进行进一步验证。如果该方法允许任意用户访问并执行敏感操作，可能导致权限绕过。"
+      ],
+      "confidence": 0.9105,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9105,
+        "adjusted_confidence": 0.9105,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\IndexController.java",
+      "language": "java",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "medium",
+      "line": 136,
+      "description": "在`ffff`方法中，`nm.findMyNotice(2L)`调用中传入了硬编码的参数2L。虽然此参数为常量，但在实际开发中，若后续改为动态参数而未做安全处理，可能会引入敏感信息泄露风险。",
+      "code_snippet": "List<Map<String, Object>> list = nm.findMyNotice(2L);",
+      "impact": "若后续逻辑中该参数被替换为用户输入，且未进行适当的安全处理，可能导致敏感信息泄露或SQL注入。",
+      "recommendation": "避免在代码中硬编码任何可能影响系统安全的参数值，应通过配置文件或环境变量管理此类信息。",
+      "issues": [
+        "在`ffff`方法中，`nm.findMyNotice(2L)`调用中传入了硬编码的参数2L。虽然此参数为常量，但在实际开发中，若后续改为动态参数而未做安全处理，可能会引入敏感信息泄露风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 110,
+      "description": "在 `outmessshow` 方法中，虽然检查了 Director 和 DirectorUser 是否为空，但未对 DirectorUser 的用户是否与当前会话用户匹配进行充分验证。如果攻击者构造恶意请求，可能绕过权限控制访问不属于自己的外部联系人信息。",
+      "code_snippet": "if(Objects.isNull(d) || Objects.isNull(du)){\n    System.out.println(\"权限不匹配，不能操作\");\n    return \"redirect:/notlimit\";\n}",
+      "impact": "攻击者可能访问非自己拥有的外部联系人信息，导致数据泄露。",
+      "recommendation": "应确保 DirectorUser 的 user 字段与当前 userId 完全一致，避免仅依赖对象存在性判断。",
+      "issues": [
+        "在 `outmessshow` 方法中，虽然检查了 Director 和 DirectorUser 是否为空，但未对 DirectorUser 的用户是否与当前会话用户匹配进行充分验证。如果攻击者构造恶意请求，可能绕过权限控制访问不属于自己的外部联系人信息。"
+      ],
+      "confidence": 0.9374999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9374999999999999,
+        "adjusted_confidence": 0.9374999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+      "language": "java",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 330,
+      "description": "在 `outaddresspaging` 方法中，调用 `am.allDirector(userId, alph, outtype, baseKey)` 时传入了多个参数，如果 `am` 是一个自定义的 Mapper 接口且未使用参数化查询，可能导致 SQL 注入风险。",
+      "code_snippet": "List<Map<String, Object>> directors=am.allDirector(userId, alph, outtype, baseKey);",
+      "impact": "攻击者可以通过构造恶意输入参数，注入任意 SQL 语句，获取敏感数据或执行非法操作。",
+      "recommendation": "确认 `allDirector` 方法是否使用了参数化查询，或改用 JPA Repository 提供的安全查询方式。",
+      "issues": [
+        "在 `outaddresspaging` 方法中，调用 `am.allDirector(userId, alph, outtype, baseKey)` 时传入了多个参数，如果 `am` 是一个自定义的 Mapper 接口且未使用参数化查询，可能导致 SQL 注入风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+      "language": "java",
+      "type": "硬编码敏感信息",
+      "severity": "medium",
+      "line": 1,
+      "description": "代码中未发现硬编码密钥或敏感信息，但建议检查是否存在其他配置文件中的敏感信息未被审计。",
+      "code_snippet": "package cn.gson.oasys.controller.address;",
+      "impact": "无直接影响，但应持续关注配置文件中的敏感信息。",
+      "recommendation": "定期审查配置文件，确保没有硬编码的密码、API 密钥等敏感信息。",
+      "issues": [
+        "代码中未发现硬编码密钥或敏感信息，但建议检查是否存在其他配置文件中的敏感信息未被审计。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\address\\AddrController.java",
+      "language": "java",
+      "type": "路径遍历漏洞",
+      "severity": "low",
+      "line": 150,
+      "description": "在 `savaaddress` 方法中，上传文件时使用了 `mservice.upload(file, user)`，如果该方法未对文件路径进行严格校验，可能存在路径遍历风险。",
+      "code_snippet": "if(file.getSize()>0){\n    Attachment attaid=mservice.upload(file, user);\n    attaid.setModel(\"aoa_bursement\");\n    Attachment att=AttDao.save(attaid);\n    director.setAttachment(att.getAttachmentId());\n}",
+      "impact": "攻击者可能上传恶意文件并利用路径遍历访问系统文件。",
+      "recommendation": "确保上传逻辑中对文件名和路径进行了严格校验，防止路径穿越攻击。",
+      "issues": [
+        "在 `savaaddress` 方法中，上传文件时使用了 `mservice.upload(file, user)`，如果该方法未对文件路径进行严格校验，可能存在路径遍历风险。"
+      ],
+      "confidence": 0.9749999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9749999999999999,
+        "adjusted_confidence": 0.9749999999999999,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\resources\\application.properties",
+            "relationship": "config",
+            "reason": "项目配置文件，可能包含安全设置"
+          }
+        ],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\attendce\\AttendceController.java",
+      "language": "java",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 135,
+      "description": "在`attendceService.singlepage`方法中，传入的`baseKey`参数未经过参数化处理直接拼接到SQL查询语句中，存在SQL注入风险。",
+      "code_snippet": "Page<Attends> page2 = attendceService.singlepage(page, baseKey, userid,type, status, time);",
+      "impact": "攻击者可以通过构造恶意的`baseKey`参数，注入任意SQL语句，可能导致数据泄露、篡改或删除。",
+      "recommendation": "使用参数化查询或预编译语句来处理用户输入的参数，避免直接拼接SQL字符串。",
+      "issues": [
+        "在`attendceService.singlepage`方法中，传入的`baseKey`参数未经过参数化处理直接拼接到SQL查询语句中，存在SQL注入风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\attendce\\AttendceController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 160,
+      "description": "在`attendceedit`方法中，通过`aid`参数直接从数据库获取记录并返回给前端，未对用户权限进行校验，可能导致越权访问。",
+      "code_snippet": "long id = Long.valueOf(aid);\nAttends attends = attenceDao.findOne(id);",
+      "impact": "攻击者可以通过构造恶意的`aid`参数，访问其他用户的考勤记录，造成数据泄露。",
+      "recommendation": "在访问记录前，应验证当前用户是否有权限访问该记录，例如通过用户ID进行匹配。",
+      "issues": [
+        "在`attendceedit`方法中，通过`aid`参数直接从数据库获取记录并返回给前端，未对用户权限进行校验，可能导致越权访问。"
+      ],
+      "confidence": 0.9105,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码片段过短(2行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9105,
+        "adjusted_confidence": 0.9105,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\attendce\\AttendceController.java",
+      "language": "java",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "medium",
+      "line": 175,
+      "description": "在`attendcesave`方法中，使用了硬编码的字符串`aoa_attends_list`作为状态模型名称，虽然不是密钥，但属于敏感信息，应避免硬编码。",
+      "code_snippet": "SystemStatusList statusList=  statusDao.findByStatusModelAndStatusName(\"aoa_attends_list\", statusname);",
+      "impact": "硬编码的敏感信息可能被逆向工程或通过代码审查发现，增加安全风险。",
+      "recommendation": "将敏感信息配置到外部配置文件中，避免硬编码在代码中。",
+      "issues": [
+        "在`attendcesave`方法中，使用了硬编码的字符串`aoa_attends_list`作为状态模型名称，虽然不是密钥，但属于敏感信息，应避免硬编码。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\attendce\\AttendceController.java",
+      "language": "java",
+      "type": "命令注入漏洞",
+      "severity": "low",
+      "line": 10,
+      "description": "代码中未发现直接调用系统命令或执行外部程序的逻辑，但存在通过`InetAddress.getLocalHost()`获取IP地址的操作，若后续逻辑涉及IP地址处理，可能存在命令注入风险。",
+      "code_snippet": "InetAddress ia=null;\nia=ia.getLocalHost();\nString attendip=ia.getHostAddress();",
+      "impact": "若后续逻辑中使用IP地址进行系统命令调用，可能引发命令注入。",
+      "recommendation": "确保IP地址处理逻辑不涉及系统命令调用，若涉及应使用参数化处理。",
+      "issues": [
+        "代码中未发现直接调用系统命令或执行外部程序的逻辑，但存在通过`InetAddress.getLocalHost()`获取IP地址的操作，若后续逻辑涉及IP地址处理，可能存在命令注入风险。"
+      ],
+      "confidence": 0.9749999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9749999999999999,
+        "adjusted_confidence": 0.9749999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\chat\\ChatManageController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 87,
+      "description": "在删除讨论区的逻辑中，虽然检查了用户是否为超级管理员或讨论区创建者，但未对discussId进行充分校验。攻击者可能通过构造恶意的discussId参数绕过权限控制，删除非自己创建的讨论区。",
+      "code_snippet": "Long discussId=Long.parseLong(req.getParameter(\"discussId\"));\nDiscuss discuss=discussDao.findOne(discussId);",
+      "impact": "攻击者可以删除任意讨论区，造成数据破坏和业务逻辑异常。",
+      "recommendation": "在删除操作前，应确保discussId对应的讨论区确实属于当前用户或具有超级管理员权限，并对discussId进行合法性校验。",
+      "issues": [
+        "在删除讨论区的逻辑中，虽然检查了用户是否为超级管理员或讨论区创建者，但未对discussId进行充分校验。攻击者可能通过构造恶意的discussId参数绕过权限控制，删除非自己创建的讨论区。"
+      ],
+      "confidence": 0.9105,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码片段过短(2行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9105,
+        "adjusted_confidence": 0.9105,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\chat\\ChatManageController.java",
+      "language": "java",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 100,
+      "description": "在分页查询中，虽然使用了Spring Data JPA的Pageable机制，但部分参数如baseKey、type、time等通过@RequestParam直接传入，若未正确处理，可能被用于构造恶意SQL语句。",
+      "code_snippet": "Page<Discuss> page2=disService.paging(page, baseKey, 1L,type,time,visitnum);",
+      "impact": "攻击者可能通过构造恶意参数，注入SQL语句，获取敏感数据或执行非法操作。",
+      "recommendation": "确保所有传入的参数都经过严格的校验和过滤，避免直接拼接SQL语句。使用参数化查询或ORM框架提供的安全查询方法。",
+      "issues": [
+        "在分页查询中，虽然使用了Spring Data JPA的Pageable机制，但部分参数如baseKey、type、time等通过@RequestParam直接传入，若未正确处理，可能被用于构造恶意SQL语句。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\chat\\ChatManageController.java",
+      "language": "java",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "low",
+      "line": 140,
+      "description": "在处理投票信息时，代码中存在硬编码的投票标题和颜色信息，虽然不是直接的密钥，但可能包含敏感业务逻辑信息。",
+      "code_snippet": "String[] title2=req.getParameterValues(\"votetitle\");\nString[] colors=req.getParameterValues(\"votecolor\");",
+      "impact": "虽然不是直接的密钥，但可能暴露业务逻辑结构，增加攻击面。",
+      "recommendation": "避免在代码中硬编码敏感信息，应通过配置文件或外部系统管理。",
+      "issues": [
+        "在处理投票信息时，代码中存在硬编码的投票标题和颜色信息，虽然不是直接的密钥，但可能包含敏感业务逻辑信息。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(2行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\chat\\ReplyController.java",
+      "language": "java",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 47,
+      "description": "在reply方法中，通过req.getParameter(\"replyId\")获取的参数直接用于Long.parseLong()转换并传入discussDao.findOne()方法，虽然使用了Spring Data JPA的findOne方法，但若DAO层未使用参数化查询或框架未正确处理参数绑定，可能存在SQL注入风险。",
+      "code_snippet": "Long discussId = Long.parseLong(req.getParameter(\"replyId\"));\nDiscuss dis = null;\nif (\"discuss\".equals(module)) {\n    dis = discussDao.findOne(discussId);\n    num = dis.getDiscussId();\n} else {\n    Reply replyyy = replyDao.findOne(discussId);\n    dis = replyyy.getDiscuss();\n    num = dis.getDiscussId();\n}",
+      "impact": "攻击者可能通过构造恶意输入绕过权限验证或执行非授权操作。",
+      "recommendation": "确保DAO层使用参数化查询或框架提供的安全方法，避免直接拼接SQL语句。",
+      "issues": [
+        "在reply方法中，通过req.getParameter(\"replyId\")获取的参数直接用于Long.parseLong()转换并传入discussDao.findOne()方法，虽然使用了Spring Data JPA的findOne方法，但若DAO层未使用参数化查询或框架未正确处理参数绑定，可能存在SQL注入风险。"
+      ],
+      "confidence": 0.9749999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9749999999999999,
+        "adjusted_confidence": 0.9749999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\chat\\ReplyController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 110,
+      "description": "在replyDelete方法中，权限检查逻辑存在缺陷。当用户不是超级管理员且不是讨论作者时，会返回notlimit页面，但没有对replyId和module参数进行充分校验，可能导致越权删除其他用户的回复或评论。",
+      "code_snippet": "if (user.getSuperman()) {\n} else {\n    if (Objects.equals(user.getUserId(), discuss.getUser().getUserId())) {\n    } else {\n        System.out.println(\"权限不匹配，不能删除\");\n        return \"redirect:/notlimit\";\n    }\n}",
+      "impact": "攻击者可能利用此漏洞删除不属于自己的回复或评论，造成数据破坏。",
+      "recommendation": "增加对replyId和module参数的合法性校验，并确保所有操作都在用户权限范围内执行。",
+      "issues": [
+        "在replyDelete方法中，权限检查逻辑存在缺陷。当用户不是超级管理员且不是讨论作者时，会返回notlimit页面，但没有对replyId和module参数进行充分校验，可能导致越权删除其他用户的回复或评论。"
+      ],
+      "confidence": 0.9525,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 1.0,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9525,
+        "adjusted_confidence": 0.9525,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\chat\\ReplyController.java",
+      "language": "java",
+      "type": "硬编码敏感信息",
+      "severity": "low",
+      "line": 1,
+      "description": "代码中未发现硬编码的密钥或敏感信息，但建议检查整个项目中是否存在此类问题。",
+      "code_snippet": "package cn.gson.oasys.controller.chat;",
+      "impact": "无直接影响，但应保持警惕以防止未来引入此类问题。",
+      "recommendation": "定期扫描项目中的硬编码密钥和敏感信息，使用配置文件或环境变量管理敏感数据。",
+      "issues": [
+        "代码中未发现硬编码的密钥或敏感信息，但建议检查整个项目中是否存在此类问题。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\daymanage\\DaymanageController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 105,
+      "description": "在`addandchangeday`方法中，虽然使用了`@SessionAttribute(\"userId\")`来获取用户ID，但未对用户是否拥有修改或创建日程的权限进行验证。攻击者可能通过构造恶意请求绕过权限控制，修改或创建不属于自己的日程。",
+      "code_snippet": "public String addandchangeday(ScheduleList scheduleList,@RequestParam(\"shareuser\") String shareuser,BindingResult br,\n\t\t@SessionAttribute(\"userId\") Long userid){\n\tUser user = udao.findOne(userid);\n\t// ... \n\tdaydao.save(scheduleList);",
+      "impact": "攻击者可以创建或修改任意用户的日程，导致数据篡改或越权操作。",
+      "recommendation": "在保存日程前，应验证当前用户是否为日程的所有者或具有相应权限。例如，检查日程的用户字段是否与当前用户一致。",
+      "issues": [
+        "在`addandchangeday`方法中，虽然使用了`@SessionAttribute(\"userId\")`来获取用户ID，但未对用户是否拥有修改或创建日程的权限进行验证。攻击者可能通过构造恶意请求绕过权限控制，修改或创建不属于自己的日程。"
+      ],
+      "confidence": 0.9374999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9374999999999999,
+        "adjusted_confidence": 0.9374999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\daymanage\\DaymanageController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 117,
+      "description": "在`dayremove`方法中，虽然使用了`@SessionAttribute(\"userId\")`获取用户ID，但未对用户是否拥有删除日程的权限进行验证。攻击者可能通过构造恶意请求删除不属于自己的日程。",
+      "code_snippet": "public String dayremove(@RequestParam(value=\"rcid\") Long rcid){\n\tScheduleList rc = daydao.findOne(rcid);\n\tdaydao.delete(rc);\n\treturn \"/daymanage\";",
+      "impact": "攻击者可以删除任意用户的日程，造成数据丢失或越权操作。",
+      "recommendation": "在删除日程前，应验证当前用户是否为日程的所有者或具有相应权限。例如，检查日程的用户字段是否与当前用户一致。",
+      "issues": [
+        "在`dayremove`方法中，虽然使用了`@SessionAttribute(\"userId\")`获取用户ID，但未对用户是否拥有删除日程的权限进行验证。攻击者可能通过构造恶意请求删除不属于自己的日程。"
+      ],
+      "confidence": 0.9374999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9374999999999999,
+        "adjusted_confidence": 0.9374999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\daymanage\\DaymanageController.java",
+      "language": "java",
+      "type": "硬编码敏感信息",
+      "severity": "medium",
+      "line": 130,
+      "description": "在`mycalendarload`方法中，虽然没有直接硬编码密钥，但该方法返回了敏感的用户日程数据，若未进行适当的权限控制，可能导致敏感信息泄露。",
+      "code_snippet": "public @ResponseBody List<ScheduleList> mycalendarload(@SessionAttribute(\"userId\") Long userid,HttpServletResponse response) throws IOException{\n\tList<ScheduleList> se = dayser.aboutmeschedule(userid);\n\treturn se;\n}",
+      "impact": "若未正确验证用户权限，可能导致其他用户访问其日程数据，造成信息泄露。",
+      "recommendation": "确保在返回日程数据前，验证当前用户是否为请求数据的所有者，避免敏感信息泄露。",
+      "issues": [
+        "在`mycalendarload`方法中，虽然没有直接硬编码密钥，但该方法返回了敏感的用户日程数据，若未进行适当的权限控制，可能导致敏感信息泄露。"
+      ],
+      "confidence": 0.9749999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9749999999999999,
+        "adjusted_confidence": 0.9749999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\file\\FileAjaxController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 42,
+      "description": "在filetypeload方法中，虽然使用了@SessionAttribute(\"userId\")获取用户ID，但未对用户权限进行验证，可能导致未授权访问。",
+      "code_snippet": "@SessionAttribute(\"userId\")Long userid,\n\t@RequestParam(\"type\") String type,\n\tModel model",
+      "impact": "攻击者可能通过伪造session信息，访问其他用户的文件数据。",
+      "recommendation": "在方法中增加权限验证逻辑，确保当前用户有权访问请求的文件数据。",
+      "issues": [
+        "在filetypeload方法中，虽然使用了@SessionAttribute(\"userId\")获取用户ID，但未对用户权限进行验证，可能导致未授权访问。"
+      ],
+      "confidence": 0.9374999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9374999999999999,
+        "adjusted_confidence": 0.9374999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\file\\FileAjaxController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 130,
+      "description": "在fileloadtrashfile方法中，虽然使用了@SessionAttribute(\"userId\")获取用户ID，但未对用户权限进行验证，可能导致未授权访问。",
+      "code_snippet": "@SessionAttribute(\"userId\") Long userid,\n\t@RequestParam(\"type\") String type,\n\t@RequestParam(value=\"checkpathids[]\",required=false) List<Long> checkpathids,\n\t@RequestParam(value=\"checkfileids[]\",required=false) List<Long> checkfileids,\n\tModel model",
+      "impact": "攻击者可能通过伪造session信息，将其他用户的文件或文件夹放入回收站。",
+      "recommendation": "在方法中增加权限验证逻辑，确保当前用户有权操作请求的文件或文件夹。",
+      "issues": [
+        "在fileloadtrashfile方法中，虽然使用了@SessionAttribute(\"userId\")获取用户ID，但未对用户权限进行验证，可能导致未授权访问。"
+      ],
+      "confidence": 0.9374999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9374999999999999,
+        "adjusted_confidence": 0.9374999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\file\\FileAjaxController.java",
+      "language": "java",
+      "type": "硬编码敏感信息",
+      "severity": "low",
+      "line": 15,
+      "description": "代码中存在硬编码的包名和类名，虽然不是敏感信息，但可能暴露系统结构。",
+      "code_snippet": "package cn.gson.oasys.controller.file;",
+      "impact": "攻击者可能通过这些信息了解系统架构，辅助攻击。",
+      "recommendation": "避免在代码中暴露系统内部结构信息，可考虑使用配置文件或环境变量管理。",
+      "issues": [
+        "代码中存在硬编码的包名和类名，虽然不是敏感信息，但可能暴露系统结构。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\file\\FileController.java",
+      "language": "java",
+      "type": "路径遍历漏洞",
+      "severity": "high",
+      "line": 207,
+      "description": "在imgshow和downFile方法中，通过fileid参数获取文件路径，但未对文件路径进行严格的访问控制和路径验证。攻击者可能通过构造恶意的fileid参数，访问服务器上任意文件，导致敏感信息泄露。",
+      "code_snippet": "FileList filelist = fldao.findOne(fileid);\nFile file = fs.getFile(filelist.getFilePath());",
+      "impact": "攻击者可能读取服务器上任意文件，包括配置文件、日志文件等敏感信息。",
+      "recommendation": "在获取文件路径后，应验证文件路径是否在允许访问的目录范围内，并确保文件路径不包含路径遍历字符（如../）。",
+      "issues": [
+        "在imgshow和downFile方法中，通过fileid参数获取文件路径，但未对文件路径进行严格的访问控制和路径验证。攻击者可能通过构造恶意的fileid参数，访问服务器上任意文件，导致敏感信息泄露。"
+      ],
+      "confidence": 0.848,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(2行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.848,
+        "related_files": [
+          {
+            "path": "examples\\test_oa-system\\src\\main\\resources\\application.properties",
+            "relationship": "config",
+            "reason": "项目配置文件，可能包含安全设置"
+          }
+        ],
+        "evidence": [
+          "相关文件中发现安全控制: 这样我就能给出针对性的安全漏洞识别和改进建议。"
+        ],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\file\\FileController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 100,
+      "description": "在deletefile方法中，虽然使用了@SessionAttribute(\"userId\")进行用户身份验证，但未对用户是否拥有目标文件或目录的删除权限进行检查。攻击者可能通过构造恶意请求删除其他用户的文件。",
+      "code_snippet": "@SessionAttribute(\"userId\") Long userid,\n@RequestParam(\"pathid\") Long pathid,\n@RequestParam(\"checkpathids\") List<Long> checkpathids,\n@RequestParam(\"checkfileids\") List<Long> checkfileids, Model model",
+      "impact": "攻击者可能删除其他用户的文件或目录，造成数据破坏或隐私泄露。",
+      "recommendation": "在执行删除操作前，应验证用户是否拥有目标文件或目录的删除权限，确保操作的合法性。",
+      "issues": [
+        "在deletefile方法中，虽然使用了@SessionAttribute(\"userId\")进行用户身份验证，但未对用户是否拥有目标文件或目录的删除权限进行检查。攻击者可能通过构造恶意请求删除其他用户的文件。"
+      ],
+      "confidence": 0.9374999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9374999999999999,
+        "adjusted_confidence": 0.9374999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\file\\FileController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 140,
+      "description": "在rename方法中，虽然使用了@SessionAttribute(\"userId\")进行用户身份验证，但未对用户是否拥有目标文件或目录的重命名权限进行检查。攻击者可能通过构造恶意请求重命名其他用户的文件。",
+      "code_snippet": "@SessionAttribute(\"userId\") Long userid,\n@RequestParam(\"name\") String name,\n@RequestParam(\"renamefp\") Long renamefp,\n@RequestParam(\"pathid\") Long pathid,\n@RequestParam(\"isfile\") boolean isfile, Model model",
+      "impact": "攻击者可能重命名其他用户的文件或目录，造成数据混乱或隐私泄露。",
+      "recommendation": "在执行重命名操作前，应验证用户是否拥有目标文件或目录的重命名权限，确保操作的合法性。",
+      "issues": [
+        "在rename方法中，虽然使用了@SessionAttribute(\"userId\")进行用户身份验证，但未对用户是否拥有目标文件或目录的重命名权限进行检查。攻击者可能通过构造恶意请求重命名其他用户的文件。"
+      ],
+      "confidence": 0.9374999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9374999999999999,
+        "adjusted_confidence": 0.9374999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\file\\FileController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 164,
+      "description": "在mcto方法中，虽然使用了@SessionAttribute(\"userId\")进行用户身份验证，但未对用户是否拥有目标文件或目录的移动/复制权限进行检查。攻击者可能通过构造恶意请求移动/复制其他用户的文件。",
+      "code_snippet": "@SessionAttribute(\"userId\") Long userid,\n@RequestParam(\"morc\") boolean morc,\n@RequestParam(\"mctoid\") Long mctoid,\n@RequestParam(\"pathid\") Long pathid,\n@RequestParam(\"mcfileids\")List<Long> mcfileids,\n@RequestParam(\"mcpathids\")List<Long> mcpathids, Model model",
+      "impact": "攻击者可能移动/复制其他用户的文件，造成数据破坏或隐私泄露。",
+      "recommendation": "在执行移动/复制操作前，应验证用户是否拥有目标文件或目录的移动/复制权限，确保操作的合法性。",
+      "issues": [
+        "在mcto方法中，虽然使用了@SessionAttribute(\"userId\")进行用户身份验证，但未对用户是否拥有目标文件或目录的移动/复制权限进行检查。攻击者可能通过构造恶意请求移动/复制其他用户的文件。"
+      ],
+      "confidence": 0.9374999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9374999999999999,
+        "adjusted_confidence": 0.9374999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "src\\main\\java\\cn\\gson\\oasys\\controller\\file\\FileController.java",
+      "language": "java",
+      "type": "权限验证绕过",
+      "severity": "high",
+      "line": 190,
+      "description": "在createpath方法中，虽然使用了@SessionAttribute(\"userId\")进行用户身份验证，但未对用户是否拥有目标目录的创建权限进行检查。攻击者可能通过构造恶意请求在其他用户的目录下创建文件夹。",
+      "code_snippet": "@SessionAttribute(\"userId\") Long userid, @RequestParam(\"pathid\") Long pathid, @RequestParam(\"pathname\") String pathname, Model model",
+      "impact": "攻击者可能在其他用户的目录下创建文件夹，造成数据混乱或隐私泄露。",
+      "recommendation": "在执行创建目录操作前，应验证用户是否拥有目标目录的创建权限，确保操作的合法性。",
+      "issues": [
+        "在createpath方法中，虽然使用了@SessionAttribute(\"userId\")进行用户身份验证，但未对用户是否拥有目标目录的创建权限进行检查。攻击者可能通过构造恶意请求在其他用户的目录下创建文件夹。"
+      ],
+      "confidence": 0.9105,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 0.625
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流",
+        "权限验证绕过历史误报率75%，调整置信度"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9105,
+        "adjusted_confidence": 0.9105,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    }
+  ],
+  "summary": {
+    "total_findings": 33,
+    "files_analyzed": 30,
+    "completion_status": "success"
+  },
+  "timestamp": "2025-08-27 21:15:38.083326",
+  "timing_stats": {
+    "配置加载": 0.0058994293212890625,
+    "项目结构分析": 0.7493259906768799,
+    "文件过滤": 1.0011422634124756,
+    "AI模型初始化": 0.0023686885833740234,
+    "代码分析总时间": 354.7848563194275,
+    "LLM调用总时间": 354.7394518852234,
+    "平均每文件分析时间": 11.825996073087056,
+    "平均LLM调用时间": 11.824648396174114,
+    "LLM调用次数": 30,
+    "缓存命中次数": 0,
+    "缓存命中率": 0.0,
+    "摘要生成": 6.9141387939453125e-06
+  }
+}

@@ -424,7 +424,8 @@ class LLMManager:
         file_path: str,
         language: str,
         template: str = "security_audit_chinese",
-        prompt_override: Optional[str] = None
+        prompt_override: Optional[str] = None,
+        analysis_context: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         分析代码安全问题
@@ -434,6 +435,11 @@ class LLMManager:
             file_path: 文件路径
             language: 编程语言
             template: 分析模板
+            prompt_override: 自定义提示词
+            analysis_context: 分析上下文，用于防止递归
+                - None: 主分析
+                - "cross_file": 跨文件分析
+                - "related_file": 关联文件分析
 
         Returns:
             Dict包含分析结果和发现的问题
@@ -517,8 +523,13 @@ class LLMManager:
             # 过滤误报
             findings = self._filter_false_positives(findings, file_path, code)
 
-            # 增强置信度评估
-            findings = await self._enhance_confidence_scores(findings, file_path, code)
+            # 增强置信度评估 - 根据上下文决定是否进行跨文件分析
+            if analysis_context != "cross_file" and analysis_context != "related_file":
+                # 只有主分析才进行完整的置信度增强（包括跨文件分析）
+                findings = await self._enhance_confidence_scores(findings, file_path, code)
+            else:
+                # 跨文件分析中的关联文件，只进行基础置信度计算，不再进行跨文件分析
+                findings = await self._basic_confidence_scores(findings, file_path, code)
 
             return {
                 "success": True,
@@ -783,6 +794,56 @@ class LLMManager:
                 return True
 
         return False
+
+    async def _basic_confidence_scores(self, findings: List[Dict], file_path: str, code: str) -> List[Dict]:
+        """基础置信度计算，不进行跨文件分析"""
+        enhanced_findings = []
+
+        # 延迟初始化置信度计算器
+        if self.confidence_calculator is None:
+            try:
+                from ..analysis.confidence_calculator import ConfidenceCalculator
+                self.confidence_calculator = ConfidenceCalculator()
+            except ImportError as e:
+                logger.warning(f"Failed to import ConfidenceCalculator: {e}")
+                return findings
+
+        for finding in findings:
+            try:
+                # 构建分析上下文
+                context = {
+                    'file_path': file_path,
+                    'code': code,
+                    'tech_stack': self._get_tech_stack_info(file_path),
+                    'security_config': self._get_security_config_info(file_path)
+                }
+
+                # 使用置信度计算器
+                confidence_result = self.confidence_calculator.calculate_confidence(finding, context)
+
+                # 更新finding的置信度和相关信息
+                finding['confidence'] = confidence_result.final_score
+                finding['confidence_factors'] = {
+                    'framework_protection': confidence_result.factors.framework_protection,
+                    'architecture_appropriateness': confidence_result.factors.architecture_appropriateness,
+                    'code_complexity': confidence_result.factors.code_complexity,
+                    'pattern_reliability': confidence_result.factors.pattern_reliability,
+                    'context_completeness': confidence_result.factors.context_completeness,
+                    'historical_accuracy': confidence_result.factors.historical_accuracy
+                }
+                finding['confidence_reasoning'] = confidence_result.reasoning
+                finding['risk_level'] = confidence_result.risk_level
+
+                # 注意：这里不进行跨文件分析，避免递归
+                enhanced_findings.append(finding)
+
+            except Exception as e:
+                logger.warning(f"Failed to calculate confidence for finding: {e}")
+                if 'confidence' not in finding:
+                    finding['confidence'] = 0.5
+                enhanced_findings.append(finding)
+
+        return enhanced_findings
 
     async def _enhance_confidence_scores(self, findings: List[Dict], file_path: str, code: str) -> List[Dict]:
         """使用智能置信度计算器增强置信度评估 (简化版本)"""
