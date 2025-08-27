@@ -541,26 +541,26 @@ class LLMManager:
     def _build_security_analysis_prompt(self, code: str, file_path: str, language: str, template: str) -> str:
         """构建改进的安全分析提示词"""
 
-        # 使用配置系统检测技术栈和框架
-        try:
-            from ..config.security_config import get_security_config
-            security_config = get_security_config()
-            framework_info = security_config.detect_frameworks(code, file_path)
-        except ImportError as e:
-            logger.warning(f"Failed to import security_config: {e}")
-            framework_info = {}
+        # 使用配置系统检测技术栈和框架 (简化版本)
+        # try:
+        #     from ..config.security_config import get_security_config
+        #     security_config = get_security_config()
+        #     framework_info = security_config.detect_frameworks(code, file_path)
+        # except ImportError as e:
+        #     logger.warning(f"Failed to import security_config: {e}")
+        framework_info = {}  # Simplified version - removed security_config dependency
         architecture_layer = self._detect_architecture_layer(file_path)
 
-        # 根据编程语言获取检查项
-        if 'security_config' in locals():
-            language_info = security_config.get_language_info(language)
-            language_specific_checks = language_info.checks
-            # 构建框架特定的安全规则
-            framework_rules = security_config.get_framework_rules_text(framework_info)
-        else:
-            # 回退到默认检查项
-            language_specific_checks = self._get_default_language_checks(language)
-            framework_rules = ""
+        # 根据编程语言获取检查项 (简化版本)
+        # if 'security_config' in locals():
+        #     language_info = security_config.get_language_info(language)
+        #     language_specific_checks = language_info.checks
+        #     # 构建框架特定的安全规则
+        #     framework_rules = security_config.get_framework_rules_text(framework_info)
+        # else:
+        # 使用默认检查项
+        language_specific_checks = self._get_default_language_checks(language)
+        framework_rules = ""
 
         # 构建检查项列表
         checks_text = "\n".join([f"- {check}" for check in language_specific_checks])
@@ -751,40 +751,43 @@ class LLMManager:
         return filtered_findings
 
     def _is_false_positive(self, finding: Dict, file_path: str, code: str) -> bool:
-        """判断是否为误报"""
-        try:
-            from ..config.security_config import get_security_config
-            security_config = get_security_config()
-        except ImportError as e:
-            logger.warning(f"Failed to import security_config: {e}")
-            return False
+        """判断是否为误报 (简化版本)"""
+        # try:
+        #     from ..config.security_config import get_security_config
+        #     security_config = get_security_config()
+        # except ImportError as e:
+        #     logger.warning(f"Failed to import security_config: {e}")
+        #     return False
+        # Simplified version - basic false positive detection
         finding_type = finding.get('type', '')
         description = finding.get('description', '')
         code_snippet = finding.get('code_snippet', '')
         confidence = finding.get('confidence', 1.0)
 
+        # 简化的误报检查逻辑
         # 置信度过低的问题
-        confidence_threshold = security_config.get_confidence_threshold()
+        confidence_threshold = 0.3  # 默认阈值
         if confidence < confidence_threshold:
             return True
 
-        # SQL注入误报检查
+        # 基本的SQL注入误报检查
         if 'SQL注入' in finding_type or 'SQL注入' in description:
-            if security_config.is_safe_sql_pattern(code_snippet):
+            # 简单的安全模式检查
+            if '?' in code_snippet or ':' in code_snippet:  # 参数化查询
                 return True
 
-        # 权限验证误报检查
+        # 基本的权限验证误报检查
         if '权限' in finding_type or '越权' in finding_type or '权限' in description:
-            if security_config.is_dao_layer_permission_issue(file_path, code_snippet):
+            # DAO层权限问题通常是误报
+            if 'dao' in file_path.lower() or 'mapper' in file_path.lower():
                 return True
 
         return False
 
     async def _enhance_confidence_scores(self, findings: List[Dict], file_path: str, code: str) -> List[Dict]:
-        """使用智能置信度计算器增强置信度评估"""
-        from ..config.security_config import get_security_config
-
-        security_config = get_security_config()
+        """使用智能置信度计算器增强置信度评估 (简化版本)"""
+        # from ..config.security_config import get_security_config
+        # security_config = get_security_config()  # Removed - simplified version
         enhanced_findings = []
 
         # 延迟初始化置信度计算器
@@ -797,10 +800,10 @@ class LLMManager:
                 # 如果导入失败，直接返回原始findings
                 return findings
 
-        # 构建上下文信息
+        # 构建上下文信息 (简化版本)
         context = {
             'file_path': file_path,
-            'frameworks': security_config.detect_frameworks(code, file_path),
+            'frameworks': {},  # Simplified - removed security_config dependency
             'architecture_layer': self._detect_architecture_layer(file_path),
             'tech_stack': self._get_tech_stack_info(file_path),
             'security_config': self._get_security_config_info(file_path),
@@ -959,9 +962,9 @@ class LLMManager:
         # 初始化前端优化器
         try:
             from ..analysis.frontend_optimizer import FrontendOptimizer
-            from ..analysis.frontend_backend_mapper import FrontendBackendMapper
+            # from ..analysis.frontend_backend_mapper import FrontendBackendMapper  # Removed - simplified version
             self.frontend_optimizer = FrontendOptimizer()
-            self.frontend_backend_mapper = FrontendBackendMapper()
+            self.frontend_backend_mapper = None  # Simplified version - removed
         except ImportError as e:
             logger.warning(f"Failed to import frontend analyzers: {e}")
             self.frontend_optimizer = None

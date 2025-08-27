@@ -1,37 +1,12 @@
 """
 Validation module for AI Code Audit System.
 
-This module provides validation and verification capabilities including:
-- Hallucination detection and prevention
-- Code consistency checking
-- Line number reference validation
-- Duplicate detection and deduplication
-- Failure strategies and graceful degradation
+This module is now simplified. The validation functionality
+has been integrated into the main audit process for better
+performance and maintainability.
 """
 
-from .hallucination_detector import HallucinationDetector, ValidationResult, ValidationSeverity
-from .consistency_checker import ConsistencyChecker, ConsistencyResult, ConsistencyIssue
-from .duplicate_detector import DuplicateDetector, DuplicateResult, SimilarityMetric
-from .failure_handler import FailureHandler, FailureStrategy, RecoveryAction
+# Validation functionality is now integrated into the main audit process
+# This module is kept for backward compatibility
 
-__all__ = [
-    # Hallucination detection
-    'HallucinationDetector',
-    'ValidationResult',
-    'ValidationSeverity',
-    
-    # Consistency checking
-    'ConsistencyChecker',
-    'ConsistencyResult',
-    'ConsistencyIssue',
-    
-    # Duplicate detection
-    'DuplicateDetector',
-    'DuplicateResult',
-    'SimilarityMetric',
-    
-    # Failure handling
-    'FailureHandler',
-    'FailureStrategy',
-    'RecoveryAction',
-]
+__all__ = []

@@ -1,41 +1,12 @@
 """
 Database module for AI Code Audit System.
 
-This module provides database connectivity, ORM models, and data persistence
-functionality using SQLAlchemy with async MySQL support.
+This module is now simplified. The current version uses file-based
+storage instead of database persistence for better simplicity
+and performance.
 """
 
-from ai_code_audit.database.connection import (
-    DatabaseManager,
-    get_db_session,
-    init_database,
-    close_database,
-)
+# Database functionality has been replaced with file-based storage
+# This module is kept for backward compatibility
 
-from ai_code_audit.database.models import (
-    Base,
-    Project,
-    File,
-    Module,
-    AuditSession,
-    SecurityFinding,
-    AuditReport,
-    CacheEntry,
-)
-
-__all__ = [
-    # Connection management
-    "DatabaseManager",
-    "get_db_session", 
-    "init_database",
-    "close_database",
-    # ORM Models
-    "Base",
-    "Project",
-    "File", 
-    "Module",
-    "AuditSession",
-    "SecurityFinding",
-    "AuditReport",
-    "CacheEntry",
-]
+__all__ = []
