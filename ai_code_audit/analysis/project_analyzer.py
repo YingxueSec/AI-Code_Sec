@@ -33,14 +33,26 @@ class ProjectAnalyzer:
         self.dependency_analyzer = DependencyAnalyzer()
         # self.context_analyzer = ContextAnalyzer()  # Removed - simplified version
     
-    async def analyze_project(self, project_path: str, save_to_db: bool = True) -> ProjectInfo:
+    async def analyze_project(
+        self,
+        project_path: str,
+        save_to_db: bool = True,
+        include_extensions: list = None,
+        exclude_extensions: list = None,
+        include_paths: list = None,
+        exclude_paths: list = None
+    ) -> ProjectInfo:
         """
         Perform comprehensive project analysis.
-        
+
         Args:
             project_path: Path to the project directory
             save_to_db: Whether to save results to database
-            
+            include_extensions: List of file extensions to include
+            exclude_extensions: List of file extensions to exclude
+            include_paths: List of path patterns to include
+            exclude_paths: List of path patterns to exclude
+
         Returns:
             ProjectInfo object with complete analysis results
         """
@@ -60,7 +72,13 @@ class ProjectAnalyzer:
             
             # Step 2: Scan files
             logger.info("Scanning project files...")
-            files = self.file_scanner.scan_directory(str(project_path))
+            files = self.file_scanner.scan_directory(
+                str(project_path),
+                include_extensions=include_extensions,
+                exclude_extensions=exclude_extensions,
+                include_paths=include_paths,
+                exclude_paths=exclude_paths
+            )
             
             # Step 3: Enhanced language detection
             logger.info("Performing enhanced language detection...")

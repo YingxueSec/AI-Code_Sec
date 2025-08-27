@@ -116,7 +116,15 @@ async def audit_project(
         console.print("[INFO] 分析项目结构...")
         step_start = time.time()
         analyzer = ProjectAnalyzer()
-        project_info = await analyzer.analyze_project(project_path, save_to_db=False)
+        # 传递扩展名过滤参数给项目分析器
+        project_info = await analyzer.analyze_project(
+            project_path,
+            save_to_db=False,
+            include_extensions=include_extensions,
+            exclude_extensions=exclude_extensions,
+            include_paths=include_paths,
+            exclude_paths=exclude_paths
+        )
         log_timing("项目结构分析", time.time() - step_start)
         console.print(f"[SUCCESS] 发现 {len(project_info.files)} 个文件")
 
@@ -124,7 +132,15 @@ async def audit_project(
         step_start = time.time()
         if show_filter_stats:
             console.print("[INFO] 应用智能文件过滤...")
-            file_filter = FileFilter(config.file_filtering, project_path)
+            # 创建文件过滤器并传递命令行参数
+            file_filter = FileFilter(
+                config.file_filtering,
+                project_path,
+                include_extensions=include_extensions,
+                exclude_extensions=exclude_extensions,
+                include_paths=include_paths,
+                exclude_paths=exclude_paths
+            )
             file_paths = [str(f.path) for f in project_info.files]
             filtered_files, filter_stats = file_filter.filter_files(file_paths)
 

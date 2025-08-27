@@ -33,11 +33,25 @@ class FilterStats:
 class FileFilter:
     """Intelligent file filter for code auditing"""
     
-    def __init__(self, config: FileFilteringConfig, project_root: str):
+    def __init__(
+        self,
+        config: FileFilteringConfig,
+        project_root: str,
+        include_extensions: list = None,
+        exclude_extensions: list = None,
+        include_paths: list = None,
+        exclude_paths: list = None
+    ):
         self.config = config
         self.project_root = Path(project_root).resolve()
         self.stats = FilterStats()
         self._gitignore_patterns = []
+
+        # Store command line filtering parameters
+        self.include_extensions = include_extensions
+        self.exclude_extensions = exclude_extensions
+        self.include_paths = include_paths
+        self.exclude_paths = exclude_paths
         
         if config.use_gitignore:
             self._load_gitignore_patterns()
@@ -147,7 +161,17 @@ class FileFilter:
             self.stats.force_included += 1
             self.stats.included_files += 1
             return True, "force_included"
-        
+
+        # Check command line extension filters (high priority)
+        if not self._matches_extension_filter(file_path):
+            self.stats.filtered_files += 1
+            return False, "extension_filter"
+
+        # Check command line path filters (high priority)
+        if not self._matches_path_filter(file_path):
+            self.stats.filtered_files += 1
+            return False, "path_filter"
+
         # Check absolute ignore patterns
         if self._matches_patterns(file_path, self.config.ignore_patterns):
             self.stats.filtered_by_pattern += 1
@@ -239,3 +263,71 @@ class FileFilter:
 • Force included: {self.stats.force_included:,}"""
         
         return summary
+
+    def _matches_extension_filter(self, file_path: str) -> bool:
+        """
+        Check if file matches command line extension filtering criteria.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            True if file should be included, False otherwise
+        """
+        if not self.include_extensions and not self.exclude_extensions:
+            return True  # No extension filters specified
+
+        file_ext = Path(file_path).suffix.lower()
+
+        # If exclude_extensions is specified and file matches, exclude it
+        if self.exclude_extensions:
+            if file_ext in self.exclude_extensions:
+                return False
+
+        # If include_extensions is specified, only include matching files
+        if self.include_extensions:
+            return file_ext in self.include_extensions
+
+        # If only exclude_extensions specified, include all others
+        return True
+
+    def _matches_path_filter(self, file_path: str) -> bool:
+        """
+        Check if file matches command line path filtering criteria.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            True if file should be included, False otherwise
+        """
+        if not self.include_paths and not self.exclude_paths:
+            return True  # No path filters specified
+
+        try:
+            # Get relative path from project root
+            abs_path = Path(file_path).resolve()
+            rel_path = abs_path.relative_to(self.project_root)
+            rel_path_str = str(rel_path).replace('\\', '/')
+
+            # If exclude_paths is specified and file matches, exclude it
+            if self.exclude_paths:
+                for pattern in self.exclude_paths:
+                    pattern = pattern.replace('\\', '/').strip('/')
+                    if pattern in rel_path_str or rel_path_str.startswith(pattern + '/'):
+                        return False
+
+            # If include_paths is specified, only include matching files
+            if self.include_paths:
+                for pattern in self.include_paths:
+                    pattern = pattern.replace('\\', '/').strip('/')
+                    if pattern in rel_path_str or rel_path_str.startswith(pattern + '/'):
+                        return True
+                return False  # No include pattern matched
+
+            # If only exclude_paths specified, include all others
+            return True
+
+        except (ValueError, OSError):
+            # file_path is not relative to project_root or other error
+            return True  # Include by default if we can't determine path relationship

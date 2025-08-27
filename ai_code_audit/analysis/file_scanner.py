@@ -42,16 +42,27 @@ class FileScanner:
         self.supported_extensions = set(LANGUAGE_EXTENSIONS.keys())
         logger.debug(f"FileScanner initialized with {len(self.ignore_patterns)} ignore patterns")
     
-    def scan_directory(self, project_path: str) -> List[FileInfo]:
+    def scan_directory(
+        self,
+        project_path: str,
+        include_extensions: list = None,
+        exclude_extensions: list = None,
+        include_paths: list = None,
+        exclude_paths: list = None
+    ) -> List[FileInfo]:
         """
         Scan a directory and return list of source files.
-        
+
         Args:
             project_path: Path to the project directory
-            
+            include_extensions: List of file extensions to include (e.g., ['.html', '.js'])
+            exclude_extensions: List of file extensions to exclude
+            include_paths: List of path patterns to include
+            exclude_paths: List of path patterns to exclude
+
         Returns:
             List of FileInfo objects for discovered source files
-            
+
         Raises:
             ProjectAnalysisError: If scanning fails
         """
@@ -75,7 +86,17 @@ class FileScanner:
             for file_path in self._walk_directory(project_path):
                 total_scanned += 1
 
-                # 详细的过滤统计
+                # 1. 检查命令行扩展名过滤
+                if not self._matches_extension_filter(file_path, include_extensions, exclude_extensions):
+                    filtered_by_type += 1
+                    continue
+
+                # 2. 检查命令行路径过滤
+                if not self._matches_path_filter(file_path, project_path, include_paths, exclude_paths):
+                    filtered_by_ignore += 1
+                    continue
+
+                # 3. 详细的过滤统计
                 if self._should_ignore_file(file_path, project_path):
                     # 检查具体的过滤原因
                     try:
@@ -88,7 +109,8 @@ class FileScanner:
                         filtered_by_ignore += 1
                     continue
 
-                if not self._is_source_file(file_path):
+                # 4. 检查是否为源代码文件（如果没有指定扩展名过滤）
+                if include_extensions is None and not self._is_source_file(file_path):
                     filtered_by_type += 1
                     continue
 
@@ -292,6 +314,72 @@ class FileScanner:
     def filter_by_language(self, files: List[FileInfo], language: str) -> List[FileInfo]:
         """Filter files by programming language."""
         return [f for f in files if f.language == language]
+
+    def _matches_extension_filter(self, file_path: Path, include_extensions: list = None, exclude_extensions: list = None) -> bool:
+        """
+        Check if file matches extension filtering criteria.
+
+        Args:
+            file_path: Path to the file
+            include_extensions: List of extensions to include (e.g., ['.html', '.js'])
+            exclude_extensions: List of extensions to exclude
+
+        Returns:
+            True if file should be included, False otherwise
+        """
+        file_ext = file_path.suffix.lower()
+
+        # If exclude_extensions is specified and file matches, exclude it
+        if exclude_extensions:
+            if file_ext in exclude_extensions:
+                return False
+
+        # If include_extensions is specified, only include matching files
+        if include_extensions:
+            return file_ext in include_extensions
+
+        # If no extension filters specified, include all
+        return True
+
+    def _matches_path_filter(self, file_path: Path, project_path: Path, include_paths: list = None, exclude_paths: list = None) -> bool:
+        """
+        Check if file matches path filtering criteria.
+
+        Args:
+            file_path: Path to the file
+            project_path: Root project path
+            include_paths: List of path patterns to include
+            exclude_paths: List of path patterns to exclude
+
+        Returns:
+            True if file should be included, False otherwise
+        """
+        try:
+            # Get relative path from project root
+            rel_path = file_path.relative_to(project_path)
+            rel_path_str = str(rel_path).replace('\\', '/')
+
+            # If exclude_paths is specified and file matches, exclude it
+            if exclude_paths:
+                for pattern in exclude_paths:
+                    pattern = pattern.replace('\\', '/').strip('/')
+                    if pattern in rel_path_str or rel_path_str.startswith(pattern + '/'):
+                        return False
+
+            # If include_paths is specified, only include matching files
+            if include_paths:
+                for pattern in include_paths:
+                    pattern = pattern.replace('\\', '/').strip('/')
+                    if pattern in rel_path_str or rel_path_str.startswith(pattern + '/'):
+                        return True
+                return False  # No include pattern matched
+
+            # If no path filters specified, include all
+            return True
+
+        except ValueError:
+            # file_path is not relative to project_path
+            return False
     
     def filter_by_size(self, files: List[FileInfo], min_size: int = 0, max_size: Optional[int] = None) -> List[FileInfo]:
         """Filter files by size range."""
