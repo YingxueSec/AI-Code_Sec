@@ -49,12 +49,20 @@ class RecursionMonitor:
             self.call_stack.stack = []
         
         call_info = f"{analysis_type.value}:{file_path}"
-        
+
         # 检查是否已经在分析同一个文件的同一类型
+        # 但允许不同类型的分析（如main_analysis和cross_file可以共存）
         if call_info in self.call_stack.stack:
             logger.error(f"Circular analysis detected: {call_info}")
             logger.error(f"Current stack: {self.call_stack.stack}")
             raise RecursionError(f"Circular analysis detected: {call_info}")
+
+        # 检查是否同一个文件有过多的不同类型分析（防止间接循环）
+        file_analysis_count = sum(1 for item in self.call_stack.stack if file_path in item)
+        if file_analysis_count >= 3:  # 允许最多3种不同类型的分析
+            logger.error(f"Too many analysis types for file {file_path}: {file_analysis_count}")
+            logger.error(f"Current stack: {self.call_stack.stack}")
+            raise RecursionError(f"Too many analysis types for file: {file_path}")
         
         # 检查调用深度
         if len(self.call_stack.stack) >= self.max_depth:
@@ -68,22 +76,32 @@ class RecursionMonitor:
     def exit_analysis(self, file_path: str, analysis_type: AnalysisType) -> None:
         """
         退出分析
-        
+
         Args:
             file_path: 文件路径
             analysis_type: 分析类型
         """
         if not hasattr(self.call_stack, 'stack') or not self.call_stack.stack:
-            logger.warning(f"Attempted to exit analysis but stack is empty: {analysis_type.value}:{file_path}")
+            logger.debug(f"Attempted to exit analysis but stack is empty: {analysis_type.value}:{file_path}")
             return
-            
+
         call_info = f"{analysis_type.value}:{file_path}"
-        
-        if self.call_stack.stack and self.call_stack.stack[-1] == call_info:
-            self.call_stack.stack.pop()
-            logger.debug(f"Exited analysis: {call_info} (depth: {len(self.call_stack.stack)})")
+
+        # 在并发环境下，栈可能不完全匹配，我们采用更宽松的策略
+        if self.call_stack.stack:
+            if self.call_stack.stack[-1] == call_info:
+                # 完全匹配，正常退出
+                self.call_stack.stack.pop()
+                logger.debug(f"Exited analysis: {call_info} (depth: {len(self.call_stack.stack)})")
+            elif call_info in self.call_stack.stack:
+                # 在栈中但不在顶部，移除它
+                self.call_stack.stack.remove(call_info)
+                logger.debug(f"Removed analysis from stack: {call_info} (depth: {len(self.call_stack.stack)})")
+            else:
+                # 不在栈中，可能是并发问题，记录但不报错
+                logger.debug(f"Analysis not found in stack when exiting: {call_info}")
         else:
-            logger.warning(f"Stack mismatch when exiting: expected {call_info}, got {self.call_stack.stack[-1] if self.call_stack.stack else 'empty'}")
+            logger.debug(f"Stack empty when exiting: {call_info}")
     
     def get_current_depth(self) -> int:
         """获取当前调用深度"""

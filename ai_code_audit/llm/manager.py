@@ -20,6 +20,8 @@ from ai_code_audit.llm.kimi_provider import KimiProvider
 from ai_code_audit.llm.concurrency_manager import AdaptiveConcurrencyManager, ConcurrencyContext
 from ai_code_audit.llm.rate_limiter import get_rate_limiter
 from ai_code_audit.core.exceptions import LLMError, ConfigurationError
+from ai_code_audit.analysis.false_positive_filter import FalsePositiveFilter
+from ai_code_audit.analysis.universal_false_positive_filter import UniversalFalsePositiveFilter
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +81,10 @@ class LLMManager:
         self.frontend_optimizer = None
         self.frontend_backend_mapper = None
         self.project_path = None  # 用于跨文件分析
+
+        # 初始化误报过滤器
+        self.false_positive_filter = FalsePositiveFilter()
+        self.universal_filter = UniversalFalsePositiveFilter()
         
         # Load configuration
         if config is None:
@@ -750,16 +756,24 @@ class LLMManager:
 
 
     def _filter_false_positives(self, findings: List[Dict], file_path: str, code: str) -> List[Dict]:
-        """过滤明显的误报"""
-        filtered_findings = []
+        """使用智能误报过滤器过滤误报"""
+        try:
+            # 首先使用通用过滤器（适用于多语言）
+            filtered_findings = self.universal_filter.filter_findings(findings, file_path, code)
 
-        for finding in findings:
-            if self._is_false_positive(finding, file_path, code):
-                logger.info(f"Filtered false positive: {finding.get('type', 'unknown')} in {file_path}")
-                continue
-            filtered_findings.append(finding)
+            # 然后使用项目特定过滤器（主要针对Java/Spring）
+            filtered_findings = self.false_positive_filter.filter_findings(filtered_findings, file_path, code)
 
-        return filtered_findings
+            # 记录过滤统计
+            original_count = len(findings)
+            filtered_count = len(filtered_findings)
+            if original_count > filtered_count:
+                logger.info(f"误报过滤: {file_path} - 原始问题数: {original_count}, 过滤后: {filtered_count}, 过滤了 {original_count - filtered_count} 个误报")
+
+            return filtered_findings
+        except Exception as e:
+            logger.error(f"误报过滤失败: {e}, 返回原始结果")
+            return findings
 
     def _is_false_positive(self, finding: Dict, file_path: str, code: str) -> bool:
         """判断是否为误报 (简化版本)"""
