@@ -1,0 +1,521 @@
+{
+  "project_path": "test_project/",
+  "template": "owasp_top_10_2021",
+  "total_files": 1,
+  "findings": [
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "SQL注入漏洞",
+      "severity": "high",
+      "line": 22,
+      "description": "在`get_user_by_id`函数中，使用字符串格式化拼接SQL查询语句，未使用参数化查询，导致SQL注入风险。",
+      "code_snippet": "query = f\"SELECT * FROM users WHERE id = '{user_id}'\"",
+      "impact": "攻击者可以通过构造恶意的user_id参数执行任意SQL命令，可能导致数据泄露、篡改或删除。",
+      "recommendation": "应使用参数化查询或ORM框架提供的安全查询方法，避免直接拼接SQL语句。",
+      "issues": [
+        "在`get_user_by_id`函数中，使用字符串格式化拼接SQL查询语句，未使用参数化查询，导致SQL注入风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "命令注入漏洞",
+      "severity": "high",
+      "line": 28,
+      "description": "在`run_command`函数中，直接将用户输入拼接到系统命令中执行，存在命令注入风险。",
+      "code_snippet": "command = f\"cat {filename} && ls -la\"",
+      "impact": "攻击者可构造恶意输入，执行任意系统命令，可能导致服务器被完全控制。",
+      "recommendation": "避免使用`os.system`等直接执行命令的方式，应使用安全的API或对输入进行严格过滤和转义。",
+      "issues": [
+        "在`run_command`函数中，直接将用户输入拼接到系统命令中执行，存在命令注入风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "路径遍历漏洞",
+      "severity": "high",
+      "line": 34,
+      "description": "在`read_file`函数中，未对用户输入的文件名进行任何路径验证或限制，容易导致路径遍历攻击。",
+      "code_snippet": "with open(f\"/var/data/{filename}\", 'r') as f:",
+      "impact": "攻击者可通过构造特殊路径（如`../../../etc/passwd`）读取系统敏感文件。",
+      "recommendation": "应对用户输入进行严格验证，限制文件访问路径，使用白名单机制或路径规范化处理。",
+      "issues": [
+        "在`read_file`函数中，未对用户输入的文件名进行任何路径验证或限制，容易导致路径遍历攻击。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "不安全的反序列化",
+      "severity": "high",
+      "line": 40,
+      "description": "在`load_user_data`函数中使用`pickle.loads`反序列化不可信数据，存在远程代码执行风险。",
+      "code_snippet": "return pickle.loads(serialized_data)",
+      "impact": "攻击者可构造恶意序列化数据，在服务器上执行任意代码。",
+      "recommendation": "避免使用`pickle`模块反序列化不可信数据，应使用更安全的序列化格式如JSON，或使用安全的反序列化库。",
+      "issues": [
+        "在`load_user_data`函数中使用`pickle.loads`反序列化不可信数据，存在远程代码执行风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "硬编码密钥和敏感信息",
+      "severity": "high",
+      "line": 12,
+      "description": "在文件顶部硬编码了API密钥、数据库密码和密钥，存在敏感信息泄露风险。",
+      "code_snippet": "API_KEY = \"sk-1234567890abcdef\"\nDATABASE_PASSWORD = \"admin123\"\nSECRET_KEY = \"super_secret_key\"",
+      "impact": "一旦代码泄露，攻击者可直接获取系统访问凭证，造成严重安全后果。",
+      "recommendation": "应将敏感信息存储在环境变量或安全的配置管理系统中，避免硬编码在源码中。",
+      "issues": [
+        "在文件顶部硬编码了API密钥、数据库密码和密钥，存在敏感信息泄露风险。"
+      ],
+      "confidence": 0.9749999999999999,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.9,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.9749999999999999,
+        "adjusted_confidence": 0.9749999999999999,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "明文密码存储",
+      "severity": "high",
+      "line": 50,
+      "description": "在`save_user`函数中，将用户密码以明文形式存储在文件中，存在密码泄露风险。",
+      "code_snippet": "f.write(f\"{username}:{password}\\n\")",
+      "impact": "一旦文件被泄露，攻击者可直接获取用户明文密码，导致账户被盗用。",
+      "recommendation": "应使用强哈希算法（如bcrypt、scrypt）对密码进行加密存储，而不是明文存储。",
+      "issues": [
+        "在`save_user`函数中，将用户密码以明文形式存储在文件中，存在密码泄露风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "无权限验证的敏感操作",
+      "severity": "high",
+      "line": 55,
+      "description": "在`delete_all_users`函数中，未进行任何身份验证或权限检查，任何用户都可调用该函数删除所有用户数据。",
+      "code_snippet": "os.system(\"rm -rf /var/users/*\")",
+      "impact": "攻击者可调用该函数删除所有用户数据，造成数据丢失和业务中断。",
+      "recommendation": "应添加身份验证和权限控制机制，确保只有授权用户才能执行敏感操作。",
+      "issues": [
+        "在`delete_all_users`函数中，未进行任何身份验证或权限检查，任何用户都可调用该函数删除所有用户数据。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "弱密码哈希",
+      "severity": "medium",
+      "line": 44,
+      "description": "在`hash_password`函数中使用MD5进行密码哈希，MD5已被证明不安全，容易被破解。",
+      "code_snippet": "return hashlib.md5(password.encode()).hexdigest()",
+      "impact": "攻击者可使用彩虹表或暴力破解方式快速获取原始密码。",
+      "recommendation": "应使用更安全的哈希算法，如bcrypt、scrypt或PBKDF2，并设置足够高的迭代次数。",
+      "issues": [
+        "在`hash_password`函数中使用MD5进行密码哈希，MD5已被证明不安全，容易被破解。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "信息泄露",
+      "severity": "medium",
+      "line": 61,
+      "description": "在`debug_error`函数中，将完整的异常信息返回给客户端，可能泄露系统内部结构和错误细节。",
+      "code_snippet": "return f\"Internal error: {e.__class__.__name__} in {__file__} line {e.__traceback__.tb_lineno}\"",
+      "impact": "攻击者可利用这些信息进行进一步攻击，如探测系统结构、识别漏洞等。",
+      "recommendation": "应记录详细错误日志，但仅向客户端返回通用错误信息，避免暴露内部细节。",
+      "issues": [
+        "在`debug_error`函数中，将完整的异常信息返回给客户端，可能泄露系统内部结构和错误细节。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "不安全的随机数生成",
+      "severity": "low",
+      "line": 67,
+      "description": "在`generate_token`函数中使用`random.randint`生成token，该函数使用伪随机数生成器，不适合用于安全场景。",
+      "code_snippet": "return str(random.randint(1000, 9999))",
+      "impact": "生成的token容易被预测，可能被用于会话劫持等攻击。",
+      "recommendation": "应使用`secrets`模块中的安全随机数生成器，如`secrets.token_hex()`或`secrets.randbelow()`。",
+      "issues": [
+        "在`generate_token`函数中使用`random.randint`生成token，该函数使用伪随机数生成器，不适合用于安全场景。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "不安全的文件权限",
+      "severity": "medium",
+      "line": 74,
+      "description": "在`create_config_file`函数中，创建配置文件时设置为0o777权限，允许所有用户读写执行，存在安全风险。",
+      "code_snippet": "os.chmod('/tmp/config.conf', 0o777)",
+      "impact": "其他用户可读取或修改配置文件，可能导致敏感信息泄露或配置被篡改。",
+      "recommendation": "应设置更严格的文件权限，仅允许必要用户访问，如0o600或0o640。",
+      "issues": [
+        "在`create_config_file`函数中，创建配置文件时设置为0o777权限，允许所有用户读写执行，存在安全风险。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "时序攻击漏洞",
+      "severity": "medium",
+      "line": 80,
+      "description": "在`check_password`函数中，逐字符比较密码，容易受到时序攻击，泄露密码长度信息。",
+      "code_snippet": "for i in range(len(input_password)):\n    if input_password[i] != real_password[i]:\n        return False",
+      "impact": "攻击者可通过观察响应时间差异推断密码长度，进而进行更高效的暴力破解。",
+      "recommendation": "应使用恒定时间比较函数，如`hmac.compare_digest()`，避免因比较过程中的时间差异泄露信息。",
+      "issues": [
+        "在`check_password`函数中，逐字符比较密码，容易受到时序攻击，泄露密码长度信息。"
+      ],
+      "confidence": 0.99,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 1.0,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high"
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "XXE攻击漏洞",
+      "severity": "high",
+      "line": 87,
+      "description": "在`parse_xml`函数中，使用`xml.etree.ElementTree`解析XML数据时未禁用外部实体，容易受到XXE攻击。",
+      "code_snippet": "root = ET.fromstring(xml_data)",
+      "impact": "攻击者可构造恶意XML，读取服务器文件、发起内部网络请求或执行任意命令。",
+      "recommendation": "应禁用外部实体解析，使用`xml.etree.ElementTree`的`XMLParser`并设置`resolve_entities=False`或使用更安全的XML解析库。",
+      "issues": [
+        "在`parse_xml`函数中，使用`xml.etree.ElementTree`解析XML数据时未禁用外部实体，容易受到XXE攻击。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    },
+    {
+      "file": "extreme_vulns.py",
+      "language": "python",
+      "type": "不安全的重定向",
+      "severity": "medium",
+      "line": 93,
+      "description": "在`redirect_user`函数中，未对重定向URL进行验证，可能导致开放重定向漏洞，用于钓鱼攻击。",
+      "code_snippet": "return f\"<script>window.location.href='{url}'</script>\"",
+      "impact": "攻击者可诱导用户跳转到恶意网站，进行钓鱼或恶意软件传播。",
+      "recommendation": "应验证重定向URL是否属于可信域名，避免直接使用用户输入作为跳转地址。",
+      "issues": [
+        "在`redirect_user`函数中，未对重定向URL进行验证，可能导致开放重定向漏洞，用于钓鱼攻击。"
+      ],
+      "confidence": 0.948,
+      "confidence_factors": {
+        "framework_protection": 1.0,
+        "architecture_appropriateness": 1.0,
+        "code_complexity": 0.7200000000000001,
+        "pattern_reliability": 1.0,
+        "context_completeness": 0.9,
+        "historical_accuracy": 1.0
+      },
+      "confidence_reasoning": [
+        "代码片段过短(1行)，可能缺乏足够上下文",
+        "代码复杂度较低，可能是简单的框架调用",
+        "缺少调用链信息，无法完整分析数据流"
+      ],
+      "risk_level": "high",
+      "cross_file_analysis": {
+        "original_confidence": 0.948,
+        "adjusted_confidence": 0.948,
+        "related_files": [],
+        "evidence": [],
+        "recommendation": "跨文件分析未显著改变置信度，建议进一步人工审查"
+      }
+    }
+  ],
+  "summary": {
+    "total_findings": 14,
+    "files_analyzed": 1,
+    "completion_status": "success"
+  },
+  "timestamp": "2025-08-31 00:50:27.702509",
+  "timing_stats": {
+    "配置加载": 0.005384922027587891,
+    "项目结构分析": 0.0009789466857910156,
+    "文件过滤": 0.0025200843811035156,
+    "AI模型初始化": 0.0020749568939208984,
+    "代码分析总时间": 96.29531288146973,
+    "LLM调用总时间": 96.29351496696472,
+    "平均每文件分析时间": 96.29509902000427,
+    "平均LLM调用时间": 96.29351496696472,
+    "LLM调用次数": 1,
+    "缓存命中次数": 0,
+    "缓存命中率": 0.0,
+    "摘要生成": 1.6927719116210938e-05
+  }
+}

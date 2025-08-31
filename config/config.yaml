@@ -1,0 +1,276 @@
+# AI Code Audit System Configuration
+# This file contains the main configuration for the AI Code Audit System
+
+# Database Configuration
+database:
+  host: "localhost"
+  port: 3306
+  username: "root"
+  password: "jackhou."
+  database: "ai_code_audit_system"
+  charset: "utf8mb4"
+  pool_size: 10
+  max_overflow: 20
+
+# LLM (Large Language Model) Configuration
+llm:
+  default_model: "kimi-k2"
+
+  # Kimi Provider (SiliconFlow) - 默认首选
+  kimi:
+    api_key: "sk-kpepqjjtmxpcdhqcvrdekuroxvmpmphkfouhzbcbudbpzzzt"
+    base_url: "https://api.siliconflow.cn/v1"
+    model_name: "moonshotai/Kimi-K2-Instruct"
+    enabled: true
+    priority: 1
+    max_requests_per_minute: 10000  # 基于moonshotai/Kimi-K2-Instruct实际限制
+    cost_weight: 1.0
+    performance_weight: 1.0
+    timeout: 60  # 增加超时时间以减少超时错误
+
+  # Qwen Provider (SiliconFlow) - 备用选择
+  qwen:
+    api_key: "sk-bldkmthquuuypfythtasqvdhwtclplekygnbylvboctetkeh"
+    base_url: "https://api.siliconflow.cn/v1"
+    model_name: "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    enabled: true
+    priority: 2
+    max_requests_per_minute: 60
+    cost_weight: 1.2
+    performance_weight: 1.1
+    timeout: 60
+
+# Audit Configuration
+audit:
+  max_concurrent_sessions: 3
+  cache_ttl: 86400  # 24 hours in seconds
+  max_file_size: 3145728  # 3MB (3072KB) - 包含qdbcrm核心文件
+  max_files_per_audit: 50
+  
+  supported_languages:
+    - "python"
+    - "javascript"
+    - "typescript"
+    - "java"
+    - "go"
+    - "rust"
+    - "cpp"
+    - "c"
+    - "csharp"
+    - "php"
+    - "ruby"
+    - "kotlin"
+    - "swift"
+    - "scala"
+  
+  output_formats:
+    - "json"
+    - "yaml"
+    - "table"
+    - "markdown"
+    - "html"
+
+# Security Rules Configuration
+security_rules:
+  sql_injection: true
+  xss: true
+  csrf: true
+  authentication: true
+  authorization: true
+  data_validation: true
+  sensitive_data_exposure: true
+  insecure_crypto: true
+  code_injection: true
+  path_traversal: true
+
+# Application Settings
+cache_dir: "./cache"
+log_level: "INFO"
+debug: false
+
+# Performance tuning (moved to top level for proper loading)
+performance:
+  max_parallel_requests: 15        # 基于TPM 400k限制优化 (平均5k tokens/请求)
+  request_timeout: 180             # 增加全局超时时间
+  retry_attempts: 5                # 增加重试次数
+  retry_delay: 2                   # 基础重试延迟
+  # TPM限制: 400,000 tokens/min = 6,667 tokens/sec
+  # 平均每请求5k tokens，理论最大 1.33 RPS
+  # 15个并发可以充分利用TPM限制
+
+# Advanced Settings
+advanced:
+  # Enable experimental features
+  experimental_features: false
+  
+  # Analysis settings
+  analysis:
+    deep_analysis: true
+    include_dependencies: true
+    analyze_test_files: false
+    max_context_length: 32768
+  
+  # Report settings
+  reports:
+    include_code_snippets: true
+    max_snippet_length: 500
+    include_fix_suggestions: true
+    severity_threshold: "medium"
+
+    # Default report generation settings
+    auto_generate_reports: true
+    default_formats: ["json", "markdown"]
+    default_output_dir: "./reports"
+    filename_template: "audit_report_{timestamp}_{project_name}"
+    default_template: "security_audit_chinese"
+
+# File filtering configuration
+file_filtering:
+  enabled: true
+
+  # Absolute ignore patterns (no security risk)
+  ignore_patterns:
+    # Dependencies and packages
+    - "node_modules/**"
+    - "vendor/**"
+    - "venv/**"
+    - ".venv/**"
+    - "__pycache__/**"
+    - "site-packages/**"
+    - "target/**"
+    - ".m2/**"
+    - "lib/**"
+
+    # Build outputs
+    - "dist/**"
+    - "build/**"
+    - ".next/**"
+    - ".nuxt/**"
+    - "out/**"
+    - "public/build/**"
+
+    # qdbcrm specific directories
+    - "install/**"         # 安装目录，无安全风险
+    - "cache/**"           # 缓存目录
+    - "temp/**"            # 临时目录
+    - "backup/**"          # 备份目录
+
+    # Minified and bundled files
+    - "*.min.js"
+    - "*.bundle.js"
+    - "*.chunk.js"
+    - "*.min.css"
+    # Note: *.css and *.js are handled by conditional_ignore instead
+
+    # Static assets
+    - "*.png"
+    - "*.jpg"
+    - "*.jpeg"
+    - "*.gif"
+    - "*.svg"
+    - "*.ico"
+    - "*.woff"
+    - "*.woff2"
+    - "*.ttf"
+    - "*.eot"
+    - "*.mp4"
+    - "*.mp3"
+    - "*.wav"
+    - "*.pdf"
+
+    # Additional file types for qdbcrm
+    - "*.txt"              # 文本文件 (通常是文档)
+    - "*.md"               # Markdown文档
+    - "*.log"              # 日志文件
+    - "*.tmp"              # 临时文件
+    - "*.bak"              # 备份文件
+    - "*.htaccess"         # Apache配置 (可能需要单独审计)
+
+    # Version control and IDE
+    - ".git/**"
+    - ".svn/**"
+    - ".hg/**"
+    - ".vscode/**"
+    - ".idea/**"
+    - "*.iml"
+    - ".DS_Store"
+
+  # Conditional ignore (can be controlled by parameters)
+  conditional_ignore:
+    css_files: true          # Ignore CSS files
+    js_files: true           # Ignore JavaScript files
+    test_files: true         # Ignore test files
+    doc_files: false         # Don't ignore documentation files
+    log_files: true          # Ignore log files
+
+  # File size limits
+  max_file_size: 3145728     # 3MB in bytes - 包含qdbcrm核心文件
+
+  # Force include patterns (audit even if matches ignore rules)
+  force_include:
+    - "*.env*"
+    - "*.config.*"
+    - "*.conf"
+    - "*.ini"
+    - "*.secret*"
+    - "*.key"
+    - "*.pem"
+    - "*.crt"
+
+  # Smart detection settings
+  detect_libraries: true     # Auto-detect library files
+  use_gitignore: true        # Use .gitignore rules
+
+  # Test file patterns
+  test_patterns:
+    - "*test.*"
+    - "*spec.*"
+    - "test/**"
+    - "tests/**"
+    - "__tests__/**"
+    - "spec/**"
+
+  # CSS file patterns
+  css_patterns:
+    - "*.css"
+    - "*.scss"
+    - "*.sass"
+    - "*.less"
+    - "*.styl"
+
+  # JavaScript file patterns
+  js_patterns:
+    - "*.js"
+    - "*.jsx"
+    - "*.ts"
+    - "*.tsx"
+    - "*.mjs"
+    - "*.cjs"
+
+  # Documentation patterns
+  doc_patterns:
+    - "*.md"
+    - "*.txt"
+    - "*.rst"
+    - "*.adoc"
+    - "docs/**"
+    - "documentation/**"
+
+  # Log file patterns
+  log_patterns:
+    - "*.log"
+    - "logs/**"
+    - "log/**"
+
+  # Library detection keywords
+  library_keywords:
+    - "jQuery"
+    - "Bootstrap"
+    - "Lodash"
+    - "React"
+    - "Vue"
+    - "Angular"
+    - "Generated by"
+    - "Auto-generated"
+    - "This file is automatically generated"
+    - "Do not edit this file"

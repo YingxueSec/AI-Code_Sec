@@ -1,0 +1,47 @@
+# FastAPI后端依赖
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# 数据库相关
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+aiomysql==0.2.0
+alembic==1.12.1
+
+# 认证和安全
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# 数据验证和序列化
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# HTTP客户端和工具
+httpx==0.25.2
+requests==2.31.0
+
+# 文件处理
+aiofiles==23.2.1
+python-magic==0.4.27
+
+# 任务队列
+celery==5.3.4
+redis==5.0.1
+
+# 配置和环境
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# 日志和监控
+loguru==0.7.2
+
+# 工具类
+typing-extensions==4.8.0
+email-validator==2.1.0
+
+# AI审计引擎依赖
+rich==13.0.0
+tree-sitter==0.20.0
+gitpython==3.1.0
+asyncio-throttle==1.0.2
