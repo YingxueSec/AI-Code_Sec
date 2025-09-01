@@ -65,51 +65,63 @@ class AuditService:
     ) -> str:
         """上传项目文件并解压到临时目录"""
         
-        # 创建任务专用目录
-        task_dir = Path(settings.UPLOAD_PATH) / str(task_id)
-        task_dir.mkdir(parents=True, exist_ok=True)
-        
-        project_dir = task_dir / "project"
-        project_dir.mkdir(exist_ok=True)
-        
-        total_files = 0
-        
-        for file in files:
-            file_path = task_dir / file.filename
+        try:
+            # 创建任务专用目录
+            task_dir = Path(settings.UPLOAD_PATH) / str(task_id)
+            task_dir.mkdir(parents=True, exist_ok=True)
             
-            # 保存上传的文件
-            with open(file_path, "wb") as buffer:
-                content = await file.read()
-                buffer.write(content)
+            project_dir = task_dir / "project"
+            project_dir.mkdir(exist_ok=True)
             
-            # 如果是压缩文件，解压到project目录
-            if file.filename.endswith(('.zip', '.tar.gz', '.rar')):
-                try:
-                    if file.filename.endswith('.zip'):
-                        with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                            zip_ref.extractall(project_dir)
-                            total_files += len(zip_ref.namelist())
-                    # TODO: 添加其他压缩格式的支持
-                    
-                    # 删除压缩文件
-                    file_path.unlink()
-                    
-                except Exception as e:
-                    raise HTTPException(status_code=400, detail=f"解压文件失败: {str(e)}")
-            else:
-                # 直接文件，移动到project目录
-                shutil.move(str(file_path), str(project_dir / file.filename))
-                total_files += 1
+            total_files = 0
+            
+            for file in files:
+                file_path = task_dir / file.filename
+                
+                # 保存上传的文件
+                with open(file_path, "wb") as buffer:
+                    content = await file.read()
+                    buffer.write(content)
+                
+                # 如果是压缩文件，解压到project目录
+                if file.filename.endswith(('.zip', '.tar.gz', '.rar')):
+                    try:
+                        if file.filename.endswith('.zip'):
+                            with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                                zip_ref.extractall(project_dir)
+                                total_files += len(zip_ref.namelist())
+                        # TODO: 添加其他压缩格式的支持
+                        
+                        # 删除压缩文件
+                        file_path.unlink()
+                        
+                    except Exception as e:
+                        raise HTTPException(status_code=400, detail=f"解压文件失败: {str(e)}")
+                else:
+                    # 直接文件，移动到project目录
+                    shutil.move(str(file_path), str(project_dir / file.filename))
+                    total_files += 1
         
-        # 更新任务的文件总数
-        await db.execute(
-            update(AuditTask)
-            .where(AuditTask.id == task_id)
-            .values(total_files=total_files)
-        )
-        await db.commit()
-        
-        return str(project_dir)
+            # 更新任务的文件总数
+            await db.execute(
+                update(AuditTask)
+                .where(AuditTask.id == task_id)
+                .values(total_files=total_files)
+            )
+            await db.commit()
+            
+            # 验证项目目录确实包含文件
+            if total_files == 0:
+                raise HTTPException(status_code=400, detail="未找到有效的项目文件")
+            
+            return str(project_dir)
+            
+        except Exception as e:
+            # 清理部分上传的文件
+            task_dir = Path(settings.UPLOAD_PATH) / str(task_id)
+            if task_dir.exists():
+                shutil.rmtree(task_dir, ignore_errors=True)
+            raise HTTPException(status_code=400, detail=f"文件上传失败: {str(e)}")
     
     @staticmethod
     async def start_audit_analysis(

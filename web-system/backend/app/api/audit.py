@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 import json
+from datetime import datetime
 
 from app.db.base import get_db
 from app.core.deps import get_current_user
@@ -12,6 +13,7 @@ from app.schemas.audit import (
     AuditResultResponse, AuditConfig, ReportGenerate, ReportResponse
 )
 from app.services.audit_service import AuditService
+from app.services.task_queue_service import task_queue_service
 
 router = APIRouter(prefix="/audit", tags=["代码审计"])
 
@@ -96,18 +98,33 @@ async def start_audit(
     from app.core.config import settings
     project_path = str(Path(settings.UPLOAD_PATH) / str(task_id) / "project")
     
-    # 启动审计分析
-    success = await AuditService.start_audit_analysis(
+    # 检查项目文件是否存在
+    if not Path(project_path).exists():
+        raise HTTPException(
+            status_code=400, 
+            detail=f"项目文件不存在，请重新上传项目文件。项目路径: {project_path}"
+        )
+    
+    # 检查项目目录是否为空
+    if not any(Path(project_path).iterdir()):
+        raise HTTPException(
+            status_code=400, 
+            detail="项目目录为空，请上传有效的项目文件"
+        )
+    
+    # 添加任务到队列
+    queue_result = await task_queue_service.add_task_to_queue(
         task_id=task_id,
-        project_path=project_path,
         user=current_user,
+        project_path=project_path,
         db=db
     )
     
-    if success:
-        return {"message": "审计分析已启动", "task_id": task_id}
-    else:
-        raise HTTPException(status_code=500, detail="启动审计分析失败")
+    return {
+        "message": queue_result["message"],
+        "task_id": task_id,
+        "queue_status": queue_result
+    }
 
 
 @router.get("/tasks", response_model=AuditTaskList, summary="获取用户的审计任务列表")
@@ -237,6 +254,9 @@ async def delete_audit_task(
     
     - **task_id**: 任务ID
     """
+    
+    # 先尝试从队列中取消任务
+    await task_queue_service.cancel_queued_task(task_id, db)
     
     success = await AuditService.delete_task(db, task_id, current_user.id)
     if success:
@@ -376,3 +396,45 @@ async def export_audit_report(
     )
     
     raise HTTPException(status_code=404, detail="报告文件不存在")
+
+
+@router.get("/queue/status", summary="获取队列状态")
+async def get_queue_status(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    获取当前队列状态
+    
+    返回队列长度、运行中任务数、用户位置等信息
+    """
+    
+    # 获取全局队列状态
+    queue_status = await task_queue_service.get_queue_status()
+    
+    # 获取当前用户的队列信息
+    user_queue_info = await task_queue_service.get_user_queue_info(current_user.id)
+    
+    return {
+        "global_status": queue_status,
+        "user_status": user_queue_info,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@router.post("/queue/cancel/{task_id}", summary="取消队列中的任务")
+async def cancel_queued_task(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    取消队列中的任务
+    
+    - **task_id**: 任务ID
+    """
+    
+    success = await task_queue_service.cancel_queued_task(task_id, db)
+    if success:
+        return {"message": "队列任务已取消", "task_id": task_id}
+    else:
+        raise HTTPException(status_code=400, detail="任务不在队列中或已开始执行")

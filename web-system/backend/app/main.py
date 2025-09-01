@@ -54,12 +54,29 @@ async def startup_event():
     # 初始化数据库
     await init_db()
     logger.info("Database initialized")
+    
+    # 初始化队列服务
+    try:
+        from app.services.task_queue_service import task_queue_service
+        redis = await task_queue_service.get_redis()
+        await redis.ping()
+        logger.info("Task queue service initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize task queue service: {e}")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭事件"""
     logger.info("Shutting down AI Code Audit System API...")
+    
+    # 关闭队列服务
+    try:
+        from app.services.task_queue_service import task_queue_service
+        await task_queue_service.close()
+        logger.info("Task queue service closed")
+    except Exception as e:
+        logger.error(f"Failed to close task queue service: {e}")
 
 
 @app.get("/", tags=["根路径"])

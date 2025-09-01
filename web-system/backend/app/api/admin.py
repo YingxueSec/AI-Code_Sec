@@ -279,3 +279,115 @@ async def export_system_report(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"导出系统报告失败: {str(e)}")
+
+
+@router.get("/audit-records", summary="获取审计记录")
+async def get_audit_records(
+    page: int = 1,
+    page_size: int = 20,
+    user_id: Optional[int] = None,
+    project_name: Optional[str] = None,
+    status: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_admin: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """获取审计记录（管理员专用）"""
+    try:
+        # 构建查询条件
+        query = select(
+            AuditTask.id,
+            AuditTask.user_id,
+            AuditTask.project_name,
+            AuditTask.description,
+            AuditTask.status,
+            AuditTask.total_files,
+            AuditTask.analyzed_files,
+            AuditTask.progress_percent,
+            AuditTask.created_at,
+            AuditTask.started_at,
+            AuditTask.completed_at,
+            AuditTask.error_message,
+            User.username,
+            User.email,
+            User.user_level
+        ).select_from(AuditTask).join(User, AuditTask.user_id == User.id)
+        
+        # 应用筛选条件
+        if user_id:
+            query = query.where(AuditTask.user_id == user_id)
+        if project_name:
+            query = query.where(AuditTask.project_name.ilike(f"%{project_name}%"))
+        if status:
+            query = query.where(AuditTask.status == status)
+        if start_date:
+            query = query.where(AuditTask.created_at >= datetime.fromisoformat(start_date))
+        if end_date:
+            query = query.where(AuditTask.created_at <= datetime.fromisoformat(end_date))
+        
+        # 按创建时间降序排列
+        query = query.order_by(AuditTask.created_at.desc())
+        
+        # 查询总数
+        count_query = select(func.count(AuditTask.id)).select_from(AuditTask).join(User, AuditTask.user_id == User.id)
+        if user_id:
+            count_query = count_query.where(AuditTask.user_id == user_id)
+        if project_name:
+            count_query = count_query.where(AuditTask.project_name.ilike(f"%{project_name}%"))
+        if status:
+            count_query = count_query.where(AuditTask.status == status)
+        if start_date:
+            count_query = count_query.where(AuditTask.created_at >= datetime.fromisoformat(start_date))
+        if end_date:
+            count_query = count_query.where(AuditTask.created_at <= datetime.fromisoformat(end_date))
+            
+        total_result = await db.execute(count_query)
+        total = total_result.scalar() or 0
+        
+        # 应用分页
+        offset = (page - 1) * page_size
+        query = query.offset(offset).limit(page_size)
+        
+        result = await db.execute(query)
+        records = result.fetchall()
+        
+        # 格式化返回数据
+        audit_records = []
+        for record in records:
+            audit_record = {
+                "id": record.id,
+                "user_id": record.user_id,
+                "username": record.username,
+                "email": record.email,
+                "user_level": record.user_level,
+                "project_name": record.project_name,
+                "description": record.description,
+                "status": record.status,
+                "total_files": record.total_files,
+                "analyzed_files": record.analyzed_files,
+                "progress_percent": record.progress_percent,
+                "created_at": record.created_at.isoformat() if record.created_at else None,
+                "started_at": record.started_at.isoformat() if record.started_at else None,
+                "completed_at": record.completed_at.isoformat() if record.completed_at else None,
+                "error_message": record.error_message,
+                "duration": None
+            }
+            
+            # 计算任务持续时间
+            if record.started_at and record.completed_at:
+                duration = record.completed_at - record.started_at
+                audit_record["duration"] = str(duration).split('.')[0]  # 去掉微秒
+            
+            audit_records.append(audit_record)
+        
+        return {
+            "records": audit_records,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "pages": (total + page_size - 1) // page_size
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取审计记录失败: {str(e)}")
